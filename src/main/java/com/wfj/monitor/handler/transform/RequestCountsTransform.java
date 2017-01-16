@@ -91,7 +91,7 @@ public class RequestCountsTransform implements ClassFileTransformer {
 			if(HttpServlet.class.getName().equalsIgnoreCase( ctClass.getSuperclass().getName())){
 				ProxyFactory factory=new ProxyFactory();  
 		        //设置父类，ProxyFactory将会动态生成一个类，继承该父类  
-				factory.setSuperclass(classBeingRedefined);
+				factory.setSuperclass(ctClass.getClass());
 				
 				//设置需要过滤拦截处理的类
 				factory.setFilter(new MethodFilter() {  
@@ -112,6 +112,7 @@ public class RequestCountsTransform implements ClassFileTransformer {
 		        factory.setHandler(new RequestHandler());  
 			}
 			
+			return ctClass.toBytecode();
 		}catch (Exception e) {
 			logger.error(EnvPropertyConfig.getContextProperty("env.setting.server.error.00001002"), e);
 		}

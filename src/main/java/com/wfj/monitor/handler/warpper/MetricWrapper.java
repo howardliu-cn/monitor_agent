@@ -8,7 +8,11 @@
 package com.wfj.monitor.handler.warpper;
 
 import java.util.Date;
+import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.jar.Attributes.Name;
+
+import org.slf4j.impl.StaticLoggerBinder;
 
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.MetricRegistry;
@@ -25,7 +29,7 @@ public class MetricWrapper {
 	
 	private final MetricRegistry registry = new MetricRegistry();
 	
-	private final String METRIC_COUNTER_PATH = "com.wfj.monitor";
+	private final static String METRIC_COUNTER_PATH = "com.wfj.monitor";
 	
 	//记录总入栈请求书
 	private Counter sumInboundRequestCounts;
@@ -50,7 +54,52 @@ public class MetricWrapper {
 	//每天的时间记录，用于判断清零
 	private Date peerDate;
 
-	public void inital(){
+	public static void inital(){
+		if(slam == null)
+			instance();
+		slam.clearnMetricRegistry();
+		slam.buildMetricRegistry();
+	}
+	
+	public static MetricWrapper instance(){
+		if(slam == null)
+			slam = new MetricWrapper();
+		return slam;
+	}
+	
+	/**
+	 * 清理计数器所有内容
+	 * @Methods Name clearnMetricRegistry
+	 * @Create In 2017年1月16日 By Jack void
+	 */
+	private void clearnMetricRegistry(){
+		Iterator<String> keys = slam.registry.getNames().iterator();
+		while(keys.hasNext()){
+			String item = keys.next();
+			slam.registry.remove(item);
+		}
+	}
+	
+	/**
+	 * 建立空的计量器，每天处理一次
+	 * @Methods Name buildMetricRegistry
+	 * @Create In 2017年1月16日 By Jack void
+	 */
+	private void buildMetricRegistry(){
+		sumInboundRequestCounts = slam.registry.counter(MetricRegistry.name(MetricWrapper.METRIC_COUNTER_PATH, "request", "counts", "sum","inbound"));
+
+		sumOutboundRequestCounts = slam.registry.counter(MetricRegistry.name(MetricWrapper.METRIC_COUNTER_PATH, "request", "counts", "sum","outbound"));
 		
+		sumDealRequestCounts = slam.registry.counter(MetricRegistry.name(MetricWrapper.METRIC_COUNTER_PATH, "request", "counts", "sum","deal"));
+		
+		sumErrDealRequestCounts = slam.registry.counter(MetricRegistry.name(MetricWrapper.METRIC_COUNTER_PATH, "request", "counts", "sum","error"));
+		
+		sumErrDealRequestTime = slam.registry.counter(MetricRegistry.name(MetricWrapper.METRIC_COUNTER_PATH, "request", "time", "sum","error"));
+		
+		sumDealRequestTime = slam.registry.counter(MetricRegistry.name(MetricWrapper.METRIC_COUNTER_PATH, "request", "time", "sum","deal"));
+		
+		peerDealRequestTime = slam.registry.counter(MetricRegistry.name(MetricWrapper.METRIC_COUNTER_PATH, "request", "time", "sum","peer"));
+		
+		requestDetails = slam.registry.timer(MetricRegistry.name(MetricWrapper.METRIC_COUNTER_PATH, "request", "summer","request"));
 	}
 }
