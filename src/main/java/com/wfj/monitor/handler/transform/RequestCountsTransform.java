@@ -77,14 +77,14 @@ public class RequestCountsTransform implements ClassFileTransformer {
 			//冻结的类，不需要处理
 			if (ctClass.isFrozen()) {
 				logger.info("Skip class " + className + ": is frozen");
-				return null;
+				return classfileBuffer;
 			}
 
 			//类型、枚举、接口、注解等不需要处理的类
 			if (ctClass.isPrimitive() || ctClass.isArray() || ctClass.isAnnotation()
 					|| ctClass.isEnum() || ctClass.isInterface()) {
 				logger.info("Skip class " + className + ": not a class");
-				return null;
+				return classfileBuffer;
 			}
 			
 			//获取需要处理的HttpServlet子类并开始处理
@@ -116,8 +116,7 @@ public class RequestCountsTransform implements ClassFileTransformer {
 		}catch (Exception e) {
 			logger.error(EnvPropertyConfig.getContextProperty("env.setting.server.error.00001002"), e);
 		}
-
-		return null;
+		return classfileBuffer;
 	}
 
 }

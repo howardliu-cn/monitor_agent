@@ -10,9 +10,6 @@ package com.wfj.monitor.handler.warpper;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.jar.Attributes.Name;
-
-import org.slf4j.impl.StaticLoggerBinder;
 
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.MetricRegistry;
