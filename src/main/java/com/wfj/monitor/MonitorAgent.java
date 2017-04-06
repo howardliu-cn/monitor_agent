@@ -7,6 +7,8 @@
  */
 package com.wfj.monitor;
 
+import com.wfj.monitor.transform.MonitoringTransformer;
+
 import java.lang.instrument.Instrumentation;
 import java.lang.instrument.UnmodifiableClassException;
 
@@ -27,7 +29,7 @@ public class MonitorAgent {
 	 *            void
 	 */
 	public static void premain(String args, Instrumentation inst) {
-		// implement agent here ...
+        inst.addTransformer(new MonitoringTransformer());
 	}
 	
 	/**
@@ -53,7 +55,7 @@ public class MonitorAgent {
 	 * @throws UnmodifiableClassException void
 	 */
 	public static void agentmain(String agentArguments, Instrumentation instrumentation) throws UnmodifiableClassException {
-		
+
     }
 
 }

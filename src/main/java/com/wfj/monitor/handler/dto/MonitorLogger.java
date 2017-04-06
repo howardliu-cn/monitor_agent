@@ -49,6 +49,23 @@ public class MonitorLogger {
 	public void error(Throwable e){
 		error(e.getStackTrace().toString());
 	}
+
+    public void warn(String msg, Throwable e){
+        logger.warn("************Monitor Logger Warn Begin************");
+        logger.warn(msg);
+        logger.warn("The Details:");
+        logger.warn("************Monitor Logger Warn End************");
+    }
+
+    public void warn(String msg){
+        logger.warn("************Monitor Logger Warn Begin************");
+        logger.warn(msg);
+        logger.warn("************Monitor Logger Warn End************");
+    }
+
+    public void warn(Throwable e){
+        warn(e.getStackTrace().toString());
+    }
 	
 	public void info(String msg, Throwable e){
 		logger.info("************Monitor Logger Info Begin************");
@@ -67,22 +84,22 @@ public class MonitorLogger {
 		logger.info(msg);
 		logger.info("************Monitor Logger Info End************");
 	}
-	
-	public void warn(String msg, Throwable e){
-		logger.warn("************Monitor Logger Warn Begin************");
-		logger.warn(msg);
-		logger.warn("The Details:");
-		logger.warn("************Monitor Logger Warn End************");
-	}
-	
-	public void warn(String msg){
-		logger.warn("************Monitor Logger Warn Begin************");
-		logger.warn(msg);
-		logger.warn("************Monitor Logger Warn End************");
-	}
-	
-	public void warn(Throwable e){
-		warn(e.getStackTrace().toString());
-	}
 
+    public void debug(String msg, Throwable e){
+        logger.debug("************Monitor Logger Info Begin************");
+        logger.debug(msg);
+        logger.debug("The Details:");
+        logger.debug(e.getStackTrace().toString());
+        logger.debug("************Monitor Logger Info End************");
+    }
+
+    public void debug(Throwable e){
+        debug(e.getStackTrace().toString());
+    }
+
+    public void debug(String msg){
+        logger.debug("************Monitor Logger Info Begin************");
+        logger.debug(msg);
+        logger.debug("************Monitor Logger Info End************");
+    }
 }
