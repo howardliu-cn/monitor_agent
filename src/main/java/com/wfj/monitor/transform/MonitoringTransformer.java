@@ -110,28 +110,16 @@ public class MonitoringTransformer implements ClassFileTransformer {
     }
 
     private boolean isHttpServlet(CtClass ctClass) {
-        CtClass superclass;
-        try {
-            superclass = ctClass.getSuperclass();
-        } catch (NotFoundException e) {
-            return false;
-        }
-
-        return !(superclass == null || Object.class.getName().equals(superclass.getName()))
-                &&
-                (HttpServlet.class.getName().equals(superclass.getName()) || isHttpServlet(superclass));
+        return isChild(ctClass, HttpServlet.class);
     }
 
     private void doMethodProxy(CtClass ctClass, String methodName) {
         try {
-            Method method = HttpServlet.class.getDeclaredMethod(methodName,
-                    HttpServletRequest.class, HttpServletResponse.class);
-            Class<?>[] parameterTypes = method.getParameterTypes();
-            CtClass[] params = new CtClass[parameterTypes.length];
-            for (int i = 0; i < parameterTypes.length; i++) {
-                params[i] = classPool.getCtClass(parameterTypes[i].getName());
-            }
-            CtMethod ctMethod = ctClass.getDeclaredMethod(methodName, params);
+            CtClass[] params = {
+                    classPool.get(HttpServletRequest.class.getName()),
+                    classPool.get(HttpServletResponse.class.getName())
+            };
+            CtMethod ctMethod = ctClass.getDeclaredMethod("methodName", params);
             ctMethod.addLocalVariable("__methodRunTime", CtClass.longType);
             ctMethod.insertBefore("__methodRunTime = -System.currentTimeMillis();");
             ctMethod.insertAfter(
@@ -144,35 +132,85 @@ public class MonitoringTransformer implements ClassFileTransformer {
     }
 
     private void doSqlProxy(CtClass ctClass) {
-        CtClass[] interfaces;
-        try {
-            interfaces = ctClass.getInterfaces();
-        } catch (NotFoundException e) {
-            return;
+        if (isConnection(ctClass)) {
+            sqlConnectionProxy(ctClass);
+        } else if (isPreparedStatement(ctClass)) {
+            sqlPreparedStatementProxy(ctClass);
+        } else if (isStatement(ctClass)) {
+            sqlStatementProxy(ctClass);
         }
+    }
 
-        for (CtClass anInterface : interfaces) {
-            String interfaceName = anInterface.getName();
-            if (Connection.class.getName().equals(interfaceName)) {
-                sqlConnectionProxy(ctClass);
-            } else if (PreparedStatement.class.getName().equals(interfaceName)) {
-                sqlPreparedStatementProxy(ctClass);
-            } else if (Statement.class.getName().equals(interfaceName)) {
-                sqlStatementProxy(ctClass);
-            }
-        }
+    private boolean isConnection(CtClass ctClass) {
+        return isImpl(ctClass, Connection.class) || isChild(ctClass, Connection.class);
     }
 
     private void sqlConnectionProxy(CtClass ctClass) {
-//        prepareStatement
-//        prepareCall
+        prepareMethodProxy(ctClass, "prepareStatement");
+        prepareMethodProxy(ctClass, "prepareCall");
+    }
+
+    private void prepareMethodProxy(CtClass ctClass, String methodName) {
+        try {
+            CtMethod[] ctMethods = ctClass.getDeclaredMethods(methodName);
+            for (CtMethod ctMethod : ctMethods) {
+                ctMethod.addLocalVariable("__methodRunTime", CtClass.longType);
+                ctMethod.insertBefore("{__methodRunTime = -System.currentTimeMillis();}");
+                ctMethod.insertAfter(
+                        "__methodRunTime += System.currentTimeMillis();" +
+                                "System.out.println(\"" + ctMethod
+                                .getLongName() + " used \" + __methodRunTime + \"ms\");" +
+                                "com.wfj.monitor.common.Counter.printAfterCreatePreparedStatement($0, $1, $_);"
+                );
+            }
+        } catch (Exception e) {
+            logger.warn("SKIPPED " + methodName + " in " + ctClass.getName() + ", the reason is " + e.getMessage());
+        }
+    }
+
+    private boolean isPreparedStatement(CtClass ctClass) {
+        return isImpl(ctClass, PreparedStatement.class) || isChild(ctClass, PreparedStatement.class);
     }
 
     private void sqlPreparedStatementProxy(CtClass ctClass) {
-//        execute
-//        executeQuery
-//        executeUpdate
-//        executeLargeUpdate
+        executeProxyInPreparedStatement(ctClass, "execute");
+        executeProxyInPreparedStatement(ctClass, "executeQuery");
+        executeProxyInPreparedStatement(ctClass, "executeUpdate");
+        executeProxyInPreparedStatement(ctClass, "executeLargeUpdate");
+        cleanPreparedStatement(ctClass);
+    }
+
+    private void executeProxyInPreparedStatement(CtClass ctClass, String methodName) {
+        try {
+            CtMethod[] ctMethods = ctClass.getDeclaredMethods(methodName);
+            for (CtMethod ctMethod : ctMethods) {
+                ctMethod.addLocalVariable("__methodRunTime", CtClass.longType);
+                ctMethod.insertBefore("{__methodRunTime = -System.currentTimeMillis();}");
+                ctMethod.insertAfter(
+                        "__methodRunTime += System.currentTimeMillis();" +
+                                "System.err.println(\"" + ctMethod
+                                .getLongName() + " used \" + __methodRunTime + \"ms\");" +
+                                "com.wfj.monitor.common.Counter.printAfterExecuteInPreparedStatement($0);"
+                );
+            }
+        } catch (Exception e) {
+            logger.warn("SKIPPED " + methodName + " in " + ctClass.getName() + ", the reason is " + e.getMessage());
+        }
+    }
+
+    private void cleanPreparedStatement(CtClass ctClass) {
+        try {
+            CtMethod[] ctMethods = ctClass.getDeclaredMethods("close");
+            for (CtMethod ctMethod : ctMethods) {
+                ctMethod.insertAfter("com.wfj.monitor.common.Counter.printAfterPreparedStatementClose($0);");
+            }
+        } catch (Exception e) {
+            logger.warn("SKIPPED close in " + ctClass.getName() + ", the reason is " + e.getMessage());
+        }
+    }
+
+    private boolean isStatement(CtClass ctClass) {
+        return isImpl(ctClass, Statement.class) || isChild(ctClass, Statement.class);
     }
 
     private void sqlStatementProxy(CtClass ctClass) {
@@ -182,5 +220,33 @@ public class MonitoringTransformer implements ClassFileTransformer {
 //        executeBatch
 //        executeLargeBatch
 //        executeLargeUpdate
+    }
+
+    private boolean isChild(CtClass ctClass, Class<?> clazz) {
+        CtClass superclass;
+        try {
+            superclass = ctClass.getSuperclass();
+        } catch (NotFoundException e) {
+            return false;
+        }
+
+        return !(superclass == null || Object.class.getName().equals(superclass.getName()))
+                &&
+                (clazz.getName().equals(superclass.getName()) || isChild(superclass, clazz));
+    }
+
+    private static boolean isImpl(CtClass ctClass, Class<?> clazz) {
+        CtClass[] interfaces;
+        try {
+            interfaces = ctClass.getInterfaces();
+        } catch (NotFoundException e) {
+            return false;
+        }
+        for (CtClass anInterface : interfaces) {
+            if (clazz.getName().equals(anInterface.getName()) || isImpl(anInterface, clazz)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
