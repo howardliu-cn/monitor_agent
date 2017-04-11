@@ -1,56 +1,116 @@
 package com.wfj.monitor.common;
 
-import javax.servlet.http.HttpServletRequest;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
+import java.lang.management.ManagementFactory;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 /**
- * <br>created at 17-4-10
+ * <br>created at 17-4-11
  *
  * @author liuxh
  * @version 1.0.0
  * @since 1.0.0
  */
 public class Counter {
-    public static final Map<String, String> STATEMENT_HASHCODE_SQL_MAP = new HashMap<>();
+    private static final Map<String, Counter> COUNTER_COLLECTOR = Collections
+            .synchronizedMap(new HashMap<String, Counter>());
 
-    public static void remove(int hashCode) {
-        STATEMENT_HASHCODE_SQL_MAP.remove(hashCode + "");
+    protected final String counterName = "default";
+    protected final String id = UUID.randomUUID().toString();
+    protected final String name;
+    protected volatile long hits = 0L;
+    protected volatile long responseHits = 0L;
+    protected volatile long maximum = 0L;
+    protected volatile long durationSum = 0L;
+    protected volatile long responseDurationSum = 0L;
+    protected volatile long mean = 0L;// rounding num
+    protected volatile long responseMean = 0L;// rounding num
+
+    protected Counter(String name) {
+        this.name = name;
     }
 
-    public static void add(int hashCode, String sql) {
-        STATEMENT_HASHCODE_SQL_MAP.put(hashCode + "", sql);
+    public static Counter instance(String name) {
+        Counter counter = COUNTER_COLLECTOR.get(name);
+        if (counter == null) {
+            counter = new Counter(name);
+            COUNTER_COLLECTOR.put(name, counter);
+        }
+        ManagementFactory.getThreadMXBean().getThreadCpuTime(Thread.currentThread().getId());
+        return counter;
     }
 
-    public static String get(int hashCode) {
-        return STATEMENT_HASHCODE_SQL_MAP.get(hashCode + "");
+    public Counter addHit(long duration) {
+        return this.addHit(duration, false);
     }
 
-    public static void printBeforeRequest(HttpServletRequest request) {
-        System.err.println(request.getRequestURI());
+    public Counter addErrorHit(long duration) {
+        return this.addHit(duration, true);
     }
 
-    public static void printAfterCreatePreparedStatement(Object connection, String sql, Object stmt) {
-        System.err.println("this object's hashcode is " + System.identityHashCode(connection));
-        System.err.println("the sql is: [" + sql + "]");
-        System.err.println("the result is: [" + stmt + "]");
-        int resultHashCode = System.identityHashCode(stmt);
-        System.err.println("the result's hashcode is: [" + resultHashCode + "]");
-        Counter.add(resultHashCode, sql);
-        System.out.println(STATEMENT_HASHCODE_SQL_MAP);
+    public Counter addHit(long duration, boolean isError) {
+        assert duration >= 0;
+        synchronized (this) {
+            this.hits++;
+            this.durationSum += duration;
+            this.mean = this.durationSum / this.hits;
+            if (!isError) {
+                this.responseHits++;
+                this.responseDurationSum += duration;
+                this.responseMean = this.responseDurationSum / this.responseHits;
+            }
+        }
+        this.setMaximum(duration);
+        return this;
     }
 
-    public static void printAfterExecuteInPreparedStatement(Object stmt) {
-        int stmtHashCode = System.identityHashCode(stmt);
-        System.err.println("this object's hashcode is " + stmtHashCode);
-        System.err.println("the sql is: [" + Counter.get(stmtHashCode) + "]");
-        System.out.println(STATEMENT_HASHCODE_SQL_MAP);
+    protected long setMaximum(long duration) {
+        if (duration <= 0) {
+            return this.maximum;
+        }
+        this.maximum = Math.max(duration, this.maximum);
+        return this.maximum;
     }
 
-    public static void printAfterPreparedStatementClose(Object stmt) {
-        Counter.remove(System.identityHashCode(stmt));
-        System.out.println(STATEMENT_HASHCODE_SQL_MAP);
+    public String getCounterName() {
+        return counterName;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public long getHits() {
+        return hits;
+    }
+
+    public long getResponseHits() {
+        return responseHits;
+    }
+
+    public long getMaximum() {
+        return maximum;
+    }
+
+    public long getDurationSum() {
+        return durationSum;
+    }
+
+    public long getResponseDurationSum() {
+        return responseDurationSum;
+    }
+
+    public long getMean() {
+        return mean;
+    }
+
+    public long getResponseMean() {
+        return responseMean;
     }
 }
