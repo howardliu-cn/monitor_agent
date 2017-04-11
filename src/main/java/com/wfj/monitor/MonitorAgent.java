@@ -7,6 +7,7 @@
  */
 package com.wfj.monitor;
 
+import com.wfj.monitor.common.SLACounter;
 import com.wfj.monitor.transform.MonitoringTransformer;
 
 import java.lang.instrument.Instrumentation;
@@ -29,6 +30,8 @@ public class MonitorAgent {
 	 *            void
 	 */
 	public static void premain(String args, Instrumentation inst) {
+//        TODO read config from args
+//        SLACounter.init();
         inst.addTransformer(new MonitoringTransformer());
 	}
 	
