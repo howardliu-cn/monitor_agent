@@ -1,0 +1,813 @@
+/*
+ * Copyright 2008-2016 by Emeric Vernat
+ *
+ *     This file is part of Java Melody.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.wfj.monitor.handler.warpper;
+
+import com.wfj.monitor.conf.Parameter;
+import com.wfj.monitor.conf.Parameters;
+import com.wfj.monitor.dto.ConnectionInformations;
+import com.wfj.monitor.dto.Counter;
+
+import javax.naming.Context;
+import javax.naming.NamingException;
+import javax.servlet.ServletContext;
+import javax.sql.DataSource;
+import java.io.Serializable;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.sql.Connection;
+import java.sql.Driver;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+
+/**
+ * 这个类是构建代理数据源或*连接JDBC有用。*和结果，
+ * 包括它在目录rebinde在JNDI的DataSource的JDBC*代监控代理。
+ * 
+ * @author Emeric Vernat
+ */
+public final class JdbcWrapper {
+	/**
+	 * JDBC包装的单一实例（在这里我们不知道的ServletContext*）。
+	 */
+	public static final JdbcWrapper SINGLETON = new JdbcWrapper(new Counter(Counter.SQL_COUNTER_NAME, "db.png"));
+
+	// 而是采用INT遍及同步，用于
+	//的AtomicInteger
+	public static final AtomicInteger ACTIVE_CONNECTION_COUNT = new AtomicInteger();
+	public static final AtomicInteger USED_CONNECTION_COUNT = new AtomicInteger();
+	public static final AtomicLong TRANSACTION_COUNT = new AtomicLong();
+	public static final AtomicInteger ACTIVE_THREAD_COUNT = new AtomicInteger();
+	public static final AtomicInteger RUNNING_BUILD_COUNT = new AtomicInteger();
+	public static final AtomicInteger BUILD_QUEUE_LENGTH = new AtomicInteger();
+	public static final Map<Integer, ConnectionInformations> USED_CONNECTION_INFORMATIONS = new ConcurrentHashMap<Integer, ConnectionInformations>();
+
+	private static final int MAX_USED_CONNECTION_INFORMATIONS = 65535;
+
+	//这个变量sqlCounter认为是全局性的过滤和状态
+	//应用程序（因此线程安全）。
+	private final Counter sqlCounter;
+	private ServletContext servletContext;
+	private boolean connectionInformationsEnabled;
+	private boolean jboss;
+	private boolean glassfish;
+	private boolean weblogic;
+	private boolean jonas;
+
+	public static final class ConnectionInformationsComparator implements Comparator<ConnectionInformations>,
+                                                                          Serializable {
+		private static final long serialVersionUID = 1L;
+
+		/** {@inheritDoc} */
+		@Override
+		public int compare(ConnectionInformations connection1, ConnectionInformations connection2) {
+			return connection1.getOpeningDate().compareTo(connection2.getOpeningDate());
+		}
+	}
+
+	/**
+	 * Handler 代理 statement jdbc.
+	 */
+	private class StatementInvocationHandler implements InvocationHandler {
+		private String requestName;
+		private final Statement statement;
+
+		StatementInvocationHandler(String query, Statement statement) {
+			super();
+			assert statement != null;
+
+			this.requestName = query;
+			this.statement = statement;
+		}
+
+		/** {@inheritDoc} */
+		@Override
+		public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+			// performance : on 方法避免 method.invoke pour equals & hashCode
+			final String methodName = method.getName();
+			if (isEqualsMethod(methodName, args)) {
+				return statement.equals(args[0]);
+			} else if (isHashCodeMethod(methodName, args)) {
+				return statement.hashCode();
+			} else if (methodName.startsWith("execute")) {
+				if (isFirstArgAString(args)) {
+					requestName = (String) args[0];
+				}
+
+				// si on n'a pas trouvé la requête, on prend "null"
+				requestName = String.valueOf(requestName);
+
+				return doExecute(requestName, statement, method, args);
+			} else if ("addBatch".equals(methodName) && isFirstArgAString(args)) {
+				requestName = (String) args[0];
+			}
+
+			// ce n'est pas une méthode executeXxx du Statement
+			return method.invoke(statement, args);
+		}
+
+		private boolean isFirstArgAString(Object[] args) {
+			return args != null && args.length > 0 && args[0] instanceof String;
+		}
+	}
+
+	/**
+	 * Handler 代理 connexion jdbc.
+	 */
+	private class ConnectionInvocationHandler implements InvocationHandler {
+		private final Connection connection;
+		private boolean alreadyClosed;
+
+		ConnectionInvocationHandler(Connection connection) {
+			super();
+			assert connection != null;
+			this.connection = connection;
+		}
+
+		void init() {
+			// on limite la taille pour éviter une éventuelle saturation mémoire
+			if (isConnectionInformationsEnabled() && USED_CONNECTION_INFORMATIONS.size() < MAX_USED_CONNECTION_INFORMATIONS) {
+				USED_CONNECTION_INFORMATIONS.put(ConnectionInformations.getUniqueIdOfConnection(connection), new ConnectionInformations());
+			}
+			USED_CONNECTION_COUNT.incrementAndGet();
+			TRANSACTION_COUNT.incrementAndGet();
+		}
+
+		/** {@inheritDoc} */
+		@Override
+		public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+			// performance : on évite method.invoke pour equals & hashCode
+			final String methodName = method.getName();
+			if (isEqualsMethod(methodName, args)) {
+				return areConnectionsEquals(args[0]);
+			} else if (isHashCodeMethod(methodName, args)) {
+				return connection.hashCode();
+			}
+			try {
+				Object result = method.invoke(connection, args);
+				if (result instanceof Statement) {
+					final String requestName;
+					if ("prepareStatement".equals(methodName) || "prepareCall".equals(methodName)) {
+						requestName = (String) args[0];
+					} else {
+						requestName = null;
+					}
+					result = createStatementProxy(requestName, (Statement) result);
+				}
+				return result;
+			} finally {
+				if ("close".equals(methodName) && !alreadyClosed) {
+					USED_CONNECTION_COUNT.decrementAndGet();
+					USED_CONNECTION_INFORMATIONS.remove(ConnectionInformations.getUniqueIdOfConnection(connection));
+					alreadyClosed = true;
+				}
+			}
+		}
+
+		private boolean areConnectionsEquals(Object object) {
+			// Special case if what we're being passed is one of our proxies
+			// (specifically a connection proxy)
+			// This way the equals call is truely transparent for our proxies
+			// (cf issue 78)
+			if (Proxy.isProxyClass(object.getClass())) {
+				final InvocationHandler invocationHandler = Proxy.getInvocationHandler(object);
+				if (invocationHandler instanceof DelegatingInvocationHandler) {
+					final DelegatingInvocationHandler d = (DelegatingInvocationHandler) invocationHandler;
+					if (d.getDelegate() instanceof ConnectionInvocationHandler) {
+						final ConnectionInvocationHandler c = (ConnectionInvocationHandler) d.getDelegate();
+						return connection.equals(c.connection);
+					}
+				}
+			}
+			return connection.equals(object);
+		}
+	}
+
+	private static class ConnectionManagerInvocationHandler extends AbstractInvocationHandler<Object> {
+		// classe sérialisable pour glassfish v2.1.1, issue 229: Exception in
+		// NamingManagerImpl copyMutableObject()
+		private static final long serialVersionUID = 1L;
+
+		ConnectionManagerInvocationHandler(Object javaxConnectionManager) {
+			super(javaxConnectionManager);
+		}
+
+		@Override
+		public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+			final Object result = method.invoke(getProxiedObject(), args);
+			if (result instanceof Connection) {
+				SINGLETON.createConnectionProxyOrRewrapIfJBossOrGlassfish((Connection) result);
+			}
+			return result;
+		}
+	}
+
+	private abstract static class AbstractInvocationHandler<T> implements InvocationHandler, Serializable {
+		private static final long serialVersionUID = 1L;
+
+		@SuppressWarnings("all")
+		private final T proxiedObject;
+
+		AbstractInvocationHandler(T proxiedObject) {
+			super();
+			this.proxiedObject = proxiedObject;
+		}
+
+		T getProxiedObject() {
+			return proxiedObject;
+		}
+	}
+
+	// ce handler désencapsule les InvocationTargetException des proxy
+	private static class DelegatingInvocationHandler implements InvocationHandler, Serializable {
+		// classe sérialisable pour MonitoringProxy
+		private static final long serialVersionUID = 7515240588169084785L;
+		@SuppressWarnings("all")
+		private final InvocationHandler delegate;
+
+		DelegatingInvocationHandler(InvocationHandler delegate) {
+			super();
+			this.delegate = delegate;
+		}
+
+		InvocationHandler getDelegate() {
+			return delegate;
+		}
+
+		/** {@inheritDoc} */
+		@Override
+		public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+			try {
+				return delegate.invoke(proxy, method, args);
+			} catch (final InvocationTargetException e) {
+				if (e.getTargetException() != null) {
+					throw e.getTargetException();
+				}
+				throw e;
+			}
+		}
+	}
+
+	private JdbcWrapper(Counter sqlCounter) {
+		super();
+		assert sqlCounter != null;
+		this.sqlCounter = sqlCounter;
+		// servletContext reste null pour l'instant
+		this.servletContext = null;
+		connectionInformationsEnabled = Parameters.isSystemActionsEnabled() && !Parameters.isNoDatabase();
+	}
+
+	public void initServletContext(ServletContext context) {
+		assert context != null;
+		this.servletContext = context;
+		final String serverInfo = servletContext.getServerInfo();
+		jboss = serverInfo.contains("JBoss") || serverInfo.contains("WildFly");
+		glassfish = serverInfo.contains("GlassFish") || serverInfo.contains("Sun Java System Application Server");
+		weblogic = serverInfo.contains("WebLogic");
+		jonas = System.getProperty("jonas.name") != null;
+		connectionInformationsEnabled = Parameters.isSystemActionsEnabled() && !Parameters.isNoDatabase();
+	}
+
+	public static int getUsedConnectionCount() {
+		return USED_CONNECTION_COUNT.get();
+	}
+
+	public static int getActiveConnectionCount() {
+		return ACTIVE_CONNECTION_COUNT.get();
+	}
+
+	public static long getTransactionCount() {
+		return TRANSACTION_COUNT.get();
+	}
+
+	public static int getActiveThreadCount() {
+		return ACTIVE_THREAD_COUNT.get();
+	}
+
+	public static int getRunningBuildCount() {
+		return RUNNING_BUILD_COUNT.get();
+	}
+
+	public static int getBuildQueueLength() {
+		return BUILD_QUEUE_LENGTH.get();
+	}
+
+	public static List<ConnectionInformations> getConnectionInformationsList() {
+		final List<ConnectionInformations> result = new ArrayList<ConnectionInformations>(USED_CONNECTION_INFORMATIONS.values());
+		Collections.sort(result, new ConnectionInformationsComparator());
+		return Collections.unmodifiableList(result);
+	}
+
+	public Counter getSqlCounter() {
+		return sqlCounter;
+	}
+
+	public boolean isConnectionInformationsEnabled() {
+		return connectionInformationsEnabled;
+	}
+
+	public static int getMaxConnectionCount() {
+		return JdbcWrapperHelper.getMaxConnectionCount();
+	}
+
+	public static Map<String, Map<String, Object>> getBasicDataSourceProperties() {
+		return JdbcWrapperHelper.getBasicDataSourceProperties();
+	}
+
+	public static Map<String, DataSource> getJndiAndSpringDataSources() throws NamingException {
+		return JdbcWrapperHelper.getJndiAndSpringDataSources();
+	}
+
+	/**
+	 * 注册从JNDI数据源没有。
+	 * 
+	 * @param name
+	 *            String
+	 * @param dataSource
+	 *            DataSource
+	 */
+	public static void registerSpringDataSource(String name, DataSource dataSource) {
+		JdbcWrapperHelper.registerSpringDataSource(name, dataSource);
+	}
+
+	public Object doExecute(String requestName, Statement statement, Method method, Object[] args) throws
+            IllegalAccessException, InvocationTargetException {
+		assert requestName != null;
+		assert statement != null;
+		assert method != null;
+
+		// on ignore les requêtes explain exécutées par DatabaseInformations
+		if (!sqlCounter.isDisplayed() || requestName.startsWith("explain ")) {
+			ACTIVE_CONNECTION_COUNT.incrementAndGet();
+			try {
+				return method.invoke(statement, args);
+			} finally {
+				ACTIVE_CONNECTION_COUNT.decrementAndGet();
+			}
+		}
+
+		final long start = System.currentTimeMillis();
+		boolean systemError = true;
+		try {
+			ACTIVE_CONNECTION_COUNT.incrementAndGet();
+			sqlCounter.bindContext(requestName, requestName, null, -1);
+
+			final Object result = method.invoke(statement, args);
+			systemError = false;
+			return result;
+		} catch (final InvocationTargetException e) {
+			if (e.getCause() instanceof SQLException) {
+				final int errorCode = ((SQLException) e.getCause()).getErrorCode();
+				if (errorCode >= 20000 && errorCode < 30000) {
+					systemError = false;
+				}
+			}
+			throw e;
+		} finally {
+			ACTIVE_CONNECTION_COUNT.decrementAndGet();
+			final long duration = Math.max(System.currentTimeMillis() - start, 0);
+			sqlCounter.addRequest(requestName, duration, -1, systemError, -1);
+		}
+	}
+
+	public boolean rebindDataSources() {
+		boolean ok;
+		try {
+			final boolean rewrapDataSources = Boolean
+                    .parseBoolean(Parameters.getParameter(Parameter.REWRAP_DATASOURCES));
+			if (rewrapDataSources) {
+				// 它取消了可能被重新绑定之前完成
+				// SessionListener
+				// 如果重新包，数据源的定义
+				JdbcWrapperHelper.rebindInitialDataSources(servletContext);
+			}
+			final Map<String, DataSource> jndiDataSources = JdbcWrapperHelper.getJndiDataSources();
+			// LOG.debug("datasources found in JNDI: " +
+			// jndiDataSources.keySet());
+			for (final Map.Entry<String, DataSource> entry : jndiDataSources.entrySet()) {
+				final String jndiName = entry.getKey();
+				final DataSource dataSource = entry.getValue();
+				if (rewrapDataSources || isServerNeedsRewrap(jndiName)) {
+					rewrapDataSource(jndiName, dataSource);
+				} else if (!isProxyAlready(dataSource)) {
+					// si dataSource est déjà un proxy, il ne faut pas faire un
+					// proxy d'un proxy ni un rebinding
+					final DataSource dataSourceProxy = createDataSourceProxy(jndiName, dataSource);
+					JdbcWrapperHelper.rebindDataSource(servletContext, jndiName, dataSource, dataSourceProxy);
+					// LOG.debug("datasource rebinded: " + jndiName +
+					// " from class "
+					// + dataSource.getClass().getName() + " to class "
+					// + dataSourceProxy.getClass().getName());
+				}
+			}
+			ok = true;
+		} catch (final Throwable t) { // NOPMD
+			// ça n'a pas marché, tant pis
+			// LOG.debug("rebinding datasources failed, skipping", t);
+			ok = false;
+		}
+		return ok;
+	}
+
+	private void rewrapDataSource(String jndiName, DataSource dataSource) throws IllegalAccessException {
+		final String dataSourceClassName = dataSource.getClass().getName();
+		// LOG.debug("Datasource needs rewrap: " + jndiName + " of class " +
+		// dataSourceClassName);
+		final String dataSourceRewrappedMessage = "Datasource rewrapped: " + jndiName;
+		if (isJBossOrGlassfishDataSource(dataSourceClassName)) {
+			Object javaxConnectionManager = JdbcWrapperHelper.getFieldValue(dataSource, "cm");
+			javaxConnectionManager = createJavaxConnectionManagerProxy(javaxConnectionManager);
+			JdbcWrapperHelper.setFieldValue(dataSource, "cm", javaxConnectionManager);
+			// LOG.debug(dataSourceRewrappedMessage);
+		} else if (isWildfly9DataSource(dataSourceClassName)) {
+			Object delegateDataSource = JdbcWrapperHelper.getFieldValue(dataSource, "delegate");
+			delegateDataSource = createDataSourceProxy((DataSource) delegateDataSource);
+			JdbcWrapperHelper.setFieldValue(dataSource, "delegate", delegateDataSource);
+			// LOG.debug(dataSourceRewrappedMessage);
+		} else if (weblogic && "weblogic.jdbc.common.internal.RmiDataSource".equals(dataSourceClassName)) {
+			// WEBLOGIC: le contexte JNDI est en lecture seule donc on modifie
+			// directement
+			// l'instance de RmiDataSource déjà présente dans le JNDI.
+			rewrapWebLogicDataSource(dataSource);
+			// LOG.debug(dataSourceRewrappedMessage);
+		} else if (isDbcpDataSource(dataSourceClassName)) {
+
+			rewrapBasicDataSource(dataSource);
+			// LOG.debug(dataSourceRewrappedMessage);
+		} else if ("org.apache.openejb.resource.jdbc.managed.local.ManagedDataSource".equals(dataSourceClassName)) {
+			// rewrap pour tomee/openejb plus récents (cf issue 104),
+			rewrapTomEEDataSource(dataSource);
+			// LOG.debug(dataSourceRewrappedMessage);
+		} else if (jonas) {
+			// JONAS (si rewrap-datasources==true)
+			rewrapJonasDataSource(jndiName, dataSource);
+		} else {
+			// LOG.info("Datasource can't be rewrapped: " + jndiName +
+			// " of class "
+			// + dataSourceClassName);
+		}
+	}
+
+	private boolean isServerNeedsRewrap(String jndiName) {
+		return glassfish || jboss || weblogic || jndiName.contains("openejb");
+	}
+
+	private boolean isDbcpDataSource(String dataSourceClassName) {
+		return "org.apache.tomcat.dbcp.dbcp.BasicDataSource".equals(dataSourceClassName) || "org.apache.tomcat.dbcp.dbcp2.BasicDataSource".equals(dataSourceClassName)
+			|| "org.apache.commons.dbcp.BasicDataSource".equals(dataSourceClassName) || "org.apache.commons.dbcp2.BasicDataSource".equals(dataSourceClassName)
+			|| "org.apache.openejb.resource.jdbc.BasicManagedDataSource".equals(dataSourceClassName) || "org.apache.openejb.resource.jdbc.BasicDataSource".equals(dataSourceClassName);
+	}
+
+	private boolean isJBossOrGlassfishDataSource(String dataSourceClassName) {
+		return jboss && "org.jboss.resource.adapter.jdbc.WrapperDataSource".equals(dataSourceClassName) || jboss && "org.jboss.jca.adapters.jdbc.WrapperDataSource".equals(dataSourceClassName)
+			|| glassfish && "com.sun.gjc.spi.jdbc40.DataSource40".equals(dataSourceClassName);
+	}
+
+	private boolean isWildfly9DataSource(String dataSourceClassName) {
+		return jboss && "org.jboss.as.connector.subsystems.datasources.WildFlyDataSource".equals(dataSourceClassName);
+	}
+
+	private void rewrapWebLogicDataSource(DataSource dataSource) throws IllegalAccessException {
+		Object jdbcCtx = JdbcWrapperHelper.getFieldValue(dataSource, "jdbcCtx");
+		if (jdbcCtx != null) {
+			jdbcCtx = createContextProxy((Context) jdbcCtx);
+			JdbcWrapperHelper.setFieldValue(dataSource, "jdbcCtx", jdbcCtx);
+		}
+		Object driverInstance = JdbcWrapperHelper.getFieldValue(dataSource, "driverInstance");
+		if (driverInstance != null) {
+			driverInstance = createDriverProxy((Driver) driverInstance);
+			JdbcWrapperHelper.setFieldValue(dataSource, "driverInstance", driverInstance);
+		}
+	}
+
+	private void rewrapBasicDataSource(DataSource dataSource) throws IllegalAccessException {
+		
+		try {
+			dataSource.getConnection().close();
+		} catch (final Exception e) {
+			// LOG.debug(e.toString());
+			// ce n'est pas grave s'il y a une exception, par exemple parce que
+			// la base n'est pas disponible,
+			// car l'essentiel est de créer la datasource
+		}
+		Object innerDataSource = JdbcWrapperHelper.getFieldValue(dataSource, "dataSource");
+		if (innerDataSource != null) {
+			innerDataSource = createDataSourceProxy((DataSource) innerDataSource);
+			JdbcWrapperHelper.setFieldValue(dataSource, "dataSource", innerDataSource);
+		}
+	}
+
+	private void rewrapTomEEDataSource(DataSource dataSource) throws IllegalAccessException {
+		
+		try {
+			dataSource.getConnection().close();
+		} catch (final Exception e) {
+			// LOG.debug(e.toString());
+			// ce n'est pas grave s'il y a une exception, par exemple parce que
+			// la base n'est pas disponible,
+			// car l'essentiel est de créer la datasource
+		}
+		Object innerDataSource = JdbcWrapperHelper.getFieldValue(dataSource, "delegate");
+		if (innerDataSource != null) {
+			innerDataSource = createDataSourceProxy((DataSource) innerDataSource);
+			JdbcWrapperHelper.setFieldValue(dataSource, "delegate", innerDataSource);
+		}
+	}
+
+	private void rewrapJonasDataSource(String jndiName, DataSource dataSource) throws IllegalAccessException {
+		
+		final String dataSourceClassName = dataSource.getClass().getName();
+		if ("org.ow2.jonas.jndi.interceptors.impl.datasource.DatasourceWrapper".equals(dataSourceClassName)) {
+			// JONAS (si rewrap-datasource==true)
+			Object wrappedDataSource = JdbcWrapperHelper.getFieldValue(dataSource, "wrappedDataSource");
+			final String wrappedDataSourceClassName = wrappedDataSource.getClass().getName();
+			// LOG.debug("Jonas wrappedDatasource needs rewrap: " + jndiName +
+			// " of class "
+			// + dataSourceClassName);
+			if ("org.ow2.jonas.ee.jdbc.DataSourceImpl".equals(wrappedDataSourceClassName)) {
+				Object javaxConnectionManager = JdbcWrapperHelper.getFieldValue(wrappedDataSource, "cm");
+				javaxConnectionManager = createJavaxConnectionManagerProxy(javaxConnectionManager);
+				JdbcWrapperHelper.setFieldValue(wrappedDataSource, "cm", javaxConnectionManager);
+			} else {
+				// rq: cela ne semble pas forcément suffire de faire un proxy de
+				// wrappedDataSource
+				wrappedDataSource = createDataSourceProxy((DataSource) wrappedDataSource);
+				JdbcWrapperHelper.setFieldValue(dataSource, "wrappedDataSource", wrappedDataSource);
+			}
+			// LOG.debug("Datasource rewrapped: " + jndiName);
+		} else if ("org.ow2.jonas.ee.jdbc.DataSourceImpl".equals(dataSourceClassName)) {
+			Object javaxConnectionManager = JdbcWrapperHelper.getFieldValue(dataSource, "cm");
+			javaxConnectionManager = createJavaxConnectionManagerProxy(javaxConnectionManager);
+			JdbcWrapperHelper.setFieldValue(dataSource, "cm", javaxConnectionManager);
+			// LOG.debug("Datasource rewrapped: " + jndiName);
+		}
+	}
+
+	public boolean stop() {
+		boolean ok;
+		try {
+			JdbcWrapperHelper.rebindInitialDataSources(servletContext);
+
+			// si jboss, glassfish ou weblogic avec datasource, on désencapsule
+			// aussi les objets wrappés
+			final Map<String, DataSource> jndiDataSources = JdbcWrapperHelper.getJndiDataSources();
+			final boolean rewrapDataSources = Boolean
+                    .parseBoolean(Parameters.getParameter(Parameter.REWRAP_DATASOURCES));
+			for (final Map.Entry<String, DataSource> entry : jndiDataSources.entrySet()) {
+				final String jndiName = entry.getKey();
+				final DataSource dataSource = entry.getValue();
+				if (rewrapDataSources || isServerNeedsRewrap(jndiName)) {
+					unwrapDataSource(jndiName, dataSource);
+				}
+			}
+
+			JdbcWrapperHelper.clearProxyCache();
+
+			ok = true;
+		} catch (final Throwable t) { // NOPMD
+			// ça n'a pas marché, tant pis
+			// LOG.debug("rebinding initial datasources failed, skipping", t);
+			ok = false;
+		}
+		return ok;
+	}
+
+	private void unwrapDataSource(String jndiName, DataSource dataSource) throws IllegalAccessException {
+		final String dataSourceClassName = dataSource.getClass().getName();
+		// LOG.debug("Datasource needs unwrap: " + jndiName + " of class " +
+		// dataSourceClassName);
+		final String dataSourceUnwrappedMessage = "Datasource unwrapped: " + jndiName;
+		if (isJBossOrGlassfishDataSource(dataSourceClassName)) {
+			unwrap(dataSource, "cm", dataSourceUnwrappedMessage);
+		} else if (isWildfly9DataSource(dataSourceClassName)) {
+			unwrap(dataSource, "delegate", dataSourceUnwrappedMessage);
+		} else if (weblogic && "weblogic.jdbc.common.internal.RmiDataSource".equals(dataSourceClassName)) {
+			unwrap(dataSource, "jdbcCtx", dataSourceUnwrappedMessage);
+			unwrap(dataSource, "driverInstance", dataSourceUnwrappedMessage);
+		} else if (isDbcpDataSource(dataSourceClassName)) {
+			unwrap(dataSource, "dataSource", dataSourceUnwrappedMessage);
+		}
+		// else if (jonas) { }
+		// pour jonas, le unwrap serait compliqué
+	}
+
+	private void unwrap(Object parentObject, String fieldName, String unwrappedMessage) throws IllegalAccessException {
+		final Object proxy = JdbcWrapperHelper.getFieldValue(parentObject, fieldName);
+		if (Proxy.isProxyClass(proxy.getClass())) {
+			InvocationHandler invocationHandler = Proxy.getInvocationHandler(proxy);
+			if (invocationHandler instanceof DelegatingInvocationHandler) {
+				invocationHandler = ((DelegatingInvocationHandler) invocationHandler).getDelegate();
+				if (invocationHandler instanceof AbstractInvocationHandler) {
+					final Object proxiedObject = ((AbstractInvocationHandler<?>) invocationHandler).getProxiedObject();
+					JdbcWrapperHelper.setFieldValue(parentObject, fieldName, proxiedObject);
+					// LOG.debug(unwrappedMessage);
+				}
+			}
+		}
+	}
+
+	public Context createContextProxy(final Context context) {
+		assert context != null;
+		final InvocationHandler invocationHandler = new AbstractInvocationHandler<Context>(context) {
+			private static final long serialVersionUID = 1L;
+
+			/** {@inheritDoc} */
+			@Override
+			public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+				Object result = method.invoke(context, args);
+				if (result instanceof DataSource) {
+					result = createDataSourceProxy((DataSource) result);
+				}
+				return result;
+			}
+		};
+		return createProxy(context, invocationHandler);
+	}
+
+	// pour weblogic
+	private Driver createDriverProxy(final Driver driver) {
+		assert driver != null;
+		final InvocationHandler invocationHandler = new AbstractInvocationHandler<Driver>(driver) {
+			private static final long serialVersionUID = 1L;
+
+			/** {@inheritDoc} */
+			@Override
+			public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+				Object result = method.invoke(driver, args);
+				if (result instanceof Connection) {
+					result = createConnectionProxy((Connection) result);
+				}
+				return result;
+			}
+		};
+		return createProxy(driver, invocationHandler);
+	}
+
+	// pour jboss, glassfish ou jonas
+	private Object createJavaxConnectionManagerProxy(Object javaxConnectionManager) {
+		assert javaxConnectionManager != null;
+		final InvocationHandler invocationHandler = new ConnectionManagerInvocationHandler(javaxConnectionManager);
+		return createProxy(javaxConnectionManager, invocationHandler);
+	}
+
+	void rewrapConnection(Connection connection) throws IllegalAccessException {
+		assert connection != null;
+		if (jboss && connection.getClass().getSimpleName().startsWith("WrappedConnection")) {
+
+			final Object baseWrapperManagedConnection = JdbcWrapperHelper.getFieldValue(connection, "mc");
+			final String conFieldName = "con";
+			Connection con = (Connection) JdbcWrapperHelper.getFieldValue(baseWrapperManagedConnection, conFieldName);
+			// on teste isProxyAlready ici pour raison de perf
+			if (!isProxyAlready(con)) {
+				con = createConnectionProxy(con);
+				JdbcWrapperHelper.setFieldValue(baseWrapperManagedConnection, conFieldName, con);
+			}
+		} else if (glassfish
+			&& ("com.sun.gjc.spi.jdbc40.ConnectionHolder40".equals(connection.getClass().getName()) || "com.sun.gjc.spi.jdbc40.ConnectionWrapper40".equals(connection.getClass().getName()))) {
+
+			final String conFieldName = "con";
+			Connection con = (Connection) JdbcWrapperHelper.getFieldValue(connection, conFieldName);
+			// on teste isProxyAlready ici pour raison de perf
+			if (!isProxyAlready(con)) {
+				con = createConnectionProxy(con);
+				JdbcWrapperHelper.setFieldValue(connection, conFieldName, con);
+			}
+		}
+	}
+
+	/**
+	 * Crée un proxy d'une dataSource jdbc.
+	 * 
+	 * @param dataSource
+	 *            DataSource
+	 * @return DataSource
+	 */
+	public DataSource createDataSourceProxy(DataSource dataSource) {
+		return createDataSourceProxy(null, dataSource);
+	}
+
+	/**
+	 * Crée un proxy d'une dataSource jdbc.
+	 * 
+	 * @param name
+	 *            String
+	 * @param dataSource
+	 *            DataSource
+	 * @return DataSource
+	 */
+	public DataSource createDataSourceProxy(String name, final DataSource dataSource) {
+		assert dataSource != null;
+		JdbcWrapperHelper.pullDataSourceProperties(name, dataSource);
+		final InvocationHandler invocationHandler = new AbstractInvocationHandler<DataSource>(dataSource) {
+			private static final long serialVersionUID = 1L;
+
+			/** {@inheritDoc} */
+			@Override
+			public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+				Object result = method.invoke(dataSource, args);
+				if (result instanceof Connection) {
+					result = createConnectionProxy((Connection) result);
+				}
+				return result;
+			}
+		};
+		return createProxy(dataSource, invocationHandler);
+	}
+
+	public Connection createConnectionProxyOrRewrapIfJBossOrGlassfish(Connection connection) throws
+            IllegalAccessException {
+		if (jboss || glassfish) {
+			rewrapConnection(connection);
+			return connection;
+		}
+		return createConnectionProxy(connection);
+	}
+
+	/**
+	 * Crée un proxy d'une connexion jdbc.
+	 * 
+	 * @param connection
+	 *            Connection
+	 * @return Connection
+	 */
+	public Connection createConnectionProxy(Connection connection) {
+		assert connection != null;
+		if (isMonitoringDisabled()) {
+			return connection;
+		}
+		final ConnectionInvocationHandler invocationHandler = new ConnectionInvocationHandler(connection);
+		final Connection result;
+		if (jonas) {
+			result = createProxy(connection, invocationHandler, Arrays.asList(new Class<?>[]{Connection.class}));
+		} else {
+			result = createProxy(connection, invocationHandler);
+		}
+		if (result != connection) { // NOPMD
+			invocationHandler.init();
+		}
+		return result;
+	}
+
+	boolean isSqlMonitoringDisabled() {
+		return isMonitoringDisabled() || !sqlCounter.isDisplayed();
+	}
+
+	private static boolean isMonitoringDisabled() {
+		// on doit réévaluer ici le paramètre, car au départ le servletContext
+		// n'est pas forcément défini si c'est un driver jdbc sans dataSource
+		return Boolean.parseBoolean(Parameters.getParameter(Parameter.DISABLED));
+	}
+
+	Statement createStatementProxy(String query, Statement statement) {
+		assert statement != null;
+		final InvocationHandler invocationHandler = new StatementInvocationHandler(query, statement);
+		return createProxy(statement, invocationHandler);
+	}
+
+	static boolean isEqualsMethod(Object methodName, Object[] args) {
+		// == for perf (strings interned: == is ok)
+		return "equals" == methodName && args != null && args.length == 1; // NOPMD
+	}
+
+	static boolean isHashCodeMethod(Object methodName, Object[] args) {
+		// == for perf (strings interned: == is ok)
+		return "hashCode" == methodName && (args == null || args.length == 0); // NOPMD
+	}
+
+	public static <T> T createProxy(T object, InvocationHandler invocationHandler) {
+		return createProxy(object, invocationHandler, null);
+	}
+
+	static <T> T createProxy(T object, InvocationHandler invocationHandler, List<Class<?>> interfaces) {
+		if (isProxyAlready(object)) {
+			return object;
+		}
+		final InvocationHandler ih = new DelegatingInvocationHandler(invocationHandler);
+		return JdbcWrapperHelper.createProxy(object, ih, interfaces);
+	}
+
+	private static boolean isProxyAlready(Object object) {
+		return Proxy.isProxyClass(object.getClass()) && Proxy.getInvocationHandler(object).getClass().getName().equals(DelegatingInvocationHandler.class.getName());
+	}
+
+}

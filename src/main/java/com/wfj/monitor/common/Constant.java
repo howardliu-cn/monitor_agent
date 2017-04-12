@@ -25,5 +25,6 @@ public class Constant {
 
     public static Boolean IS_DEBUG = false;
 
-    public static ServletContext servletContext = null;
+    public static ServletContext SERVLET_CONTEXT = null;
+    public static Integer SERVER_PORT = 8080;
 }

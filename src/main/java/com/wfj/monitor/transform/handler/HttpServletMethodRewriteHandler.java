@@ -56,7 +56,7 @@ public class HttpServletMethodRewriteHandler extends MethodRewriteHandler {
             CtClass[] params = {classPool.get(FilterConfig.class.getName())};
             CtMethod ctMethod = ctClass.getDeclaredMethod("init", params);
             ctMethod.insertBefore(
-                    "if(com.wfj.monitor.common.Constant.servletContext == null) {com.wfj.monitor.common.Constant.servletContext = $1;}"
+                    "if(com.wfj.monitor.common.Constant.SERVLET_CONTEXT == null) {com.wfj.monitor.common.Constant.SERVLET_CONTEXT = $1.getServletContext();}"
             );
         } catch (NotFoundException ignored) {
         } catch (Exception e) {
