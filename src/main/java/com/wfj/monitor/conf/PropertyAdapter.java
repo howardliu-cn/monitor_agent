@@ -74,7 +74,7 @@ public class PropertyAdapter {
     /**
      * 格式化字符串
      *
-     * @param source 待替换字符串 ｛0｝起
+     * @param source  待替换字符串 ｛0｝起
      * @param targets 需要替换的内容
      * @return String
      * @Methods Name formatter

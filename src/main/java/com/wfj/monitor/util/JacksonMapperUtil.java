@@ -25,21 +25,22 @@ import java.io.IOException;
  */
 public class JacksonMapperUtil {
 
-	private static final ObjectMapper mapper = new ObjectMapper();
-	
-	public static String objectToJson(Object source) throws JsonGenerationException, JsonMappingException, IOException {
-		//解析器支持解析单引号
-		mapper.configure(Feature.ALLOW_SINGLE_QUOTES,true);
-		//解析器支持解析结束符
-		mapper.configure(Feature.ALLOW_UNQUOTED_CONTROL_CHARS,true);
-		mapper.setVisibility(JsonMethod.FIELD, Visibility.ANY);
+    private static final ObjectMapper mapper = new ObjectMapper();
+
+    public static String objectToJson(Object source) throws JsonGenerationException, JsonMappingException, IOException {
+        //解析器支持解析单引号
+        mapper.configure(Feature.ALLOW_SINGLE_QUOTES, true);
+        //解析器支持解析结束符
+        mapper.configure(Feature.ALLOW_UNQUOTED_CONTROL_CHARS, true);
+        mapper.setVisibility(JsonMethod.FIELD, Visibility.ANY);
         mapper.configure(SerializationConfig.Feature.INDENT_OUTPUT, false);
-        
+
         return mapper.writeValueAsString(source);
-	}
-	
-	public static <T> Object jsonToObject(String source, Class<T> destin) throws JsonParseException, JsonMappingException,
+    }
+
+    public static <T> Object jsonToObject(String source, Class<T> destin)
+            throws JsonParseException, JsonMappingException,
             IOException {
-		return mapper.readValue(source, destin);
-	}
+        return mapper.readValue(source, destin);
+    }
 }

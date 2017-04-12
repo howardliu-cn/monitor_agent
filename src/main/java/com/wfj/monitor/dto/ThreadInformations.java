@@ -29,116 +29,120 @@ import java.util.List;
  * fait thread-safe. Cet état est celui d'un thread java à un instant t. Les
  * instances sont sérialisables pour pouvoir être transmises au serveur de
  * collecte.
- * 
+ *
  * @author Emeric Vernat
  */
 public class ThreadInformations implements Serializable {
-	private static final long serialVersionUID = 3604281253550723654L;
-	@SuppressWarnings("all")
-	private static final ThreadMXBean THREAD_BEAN = ManagementFactory.getThreadMXBean();
-	private static final boolean CPU_TIME_ENABLED = THREAD_BEAN.isThreadCpuTimeSupported() && THREAD_BEAN.isThreadCpuTimeEnabled();
-	private final String name;
-	private final long id;
-	private final int priority;
-	private final boolean daemon;
-	private final Thread.State state;
-	private final long cpuTimeMillis;
-	private final long userTimeMillis;
-	private final boolean deadlocked;
-	private final String globalThreadId;
-	@SuppressWarnings("all")
-	private final List<StackTraceElement> stackTrace;
+    private static final long serialVersionUID = 3604281253550723654L;
+    @SuppressWarnings("all")
+    private static final ThreadMXBean THREAD_BEAN = ManagementFactory.getThreadMXBean();
+    private static final boolean CPU_TIME_ENABLED = THREAD_BEAN.isThreadCpuTimeSupported() && THREAD_BEAN
+            .isThreadCpuTimeEnabled();
+    private final String name;
+    private final long id;
+    private final int priority;
+    private final boolean daemon;
+    private final Thread.State state;
+    private final long cpuTimeMillis;
+    private final long userTimeMillis;
+    private final boolean deadlocked;
+    private final String globalThreadId;
+    @SuppressWarnings("all")
+    private final List<StackTraceElement> stackTrace;
 
-	@SuppressWarnings("all")
-	public ThreadInformations(Thread thread, List<StackTraceElement> stackTrace, long cpuTimeMillis,
+    @SuppressWarnings("all")
+    public ThreadInformations(Thread thread, List<StackTraceElement> stackTrace, long cpuTimeMillis,
             long userTimeMillis, boolean deadlocked, String hostAddress) {
-		super();
-		assert thread != null;
-		assert stackTrace == null || stackTrace instanceof Serializable;
+        super();
+        assert thread != null;
+        assert stackTrace == null || stackTrace instanceof Serializable;
 
-		this.name = thread.getName();
-		this.id = thread.getId();
-		this.priority = thread.getPriority();
-		this.daemon = thread.isDaemon();
-		this.state = thread.getState();
-		this.stackTrace = stackTrace;
-		this.cpuTimeMillis = cpuTimeMillis;
-		this.userTimeMillis = userTimeMillis;
-		this.deadlocked = deadlocked;
-		this.globalThreadId = buildGlobalThreadId(thread, hostAddress);
-	}
+        this.name = thread.getName();
+        this.id = thread.getId();
+        this.priority = thread.getPriority();
+        this.daemon = thread.isDaemon();
+        this.state = thread.getState();
+        this.stackTrace = stackTrace;
+        this.cpuTimeMillis = cpuTimeMillis;
+        this.userTimeMillis = userTimeMillis;
+        this.deadlocked = deadlocked;
+        this.globalThreadId = buildGlobalThreadId(thread, hostAddress);
+    }
 
-	public static long getCurrentThreadCpuTime() {
-		return getThreadCpuTime(Thread.currentThread().getId());
-	}
+    public static long getCurrentThreadCpuTime() {
+        return getThreadCpuTime(Thread.currentThread().getId());
+    }
 
-	public static long getThreadCpuTime(long threadId) {
-		if (CPU_TIME_ENABLED) {
-			// le coût de cette méthode se mesure à environ 0,6 microseconde
-			return THREAD_BEAN.getThreadCpuTime(threadId);
-		}
-		return 0;
-	}
+    public static long getThreadCpuTime(long threadId) {
+        if (CPU_TIME_ENABLED) {
+            // le coût de cette méthode se mesure à environ 0,6 microseconde
+            return THREAD_BEAN.getThreadCpuTime(threadId);
+        }
+        return 0;
+    }
 
-	public String getName() {
-		return name;
-	}
+    public String getName() {
+        return name;
+    }
 
-	public long getId() {
-		return id;
-	}
+    public long getId() {
+        return id;
+    }
 
-	public int getPriority() {
-		return priority;
-	}
+    public int getPriority() {
+        return priority;
+    }
 
-	public boolean isDaemon() {
-		return daemon;
-	}
+    public boolean isDaemon() {
+        return daemon;
+    }
 
-	public Thread.State getState() {
-		return state;
-	}
+    public Thread.State getState() {
+        return state;
+    }
 
-	public List<StackTraceElement> getStackTrace() {
-		if (stackTrace != null) {
-			return Collections.unmodifiableList(stackTrace);
-		}
-		return stackTrace;
-	}
+    public List<StackTraceElement> getStackTrace() {
+        if (stackTrace != null) {
+            return Collections.unmodifiableList(stackTrace);
+        }
+        return stackTrace;
+    }
 
-	public String getExecutedMethod() {
-		final List<StackTraceElement> trace = stackTrace;
-		if (trace != null && !trace.isEmpty()) {
-			return trace.get(0).toString();
-		}
-		return "";
-	}
+    public String getExecutedMethod() {
+        final List<StackTraceElement> trace = stackTrace;
+        if (trace != null && !trace.isEmpty()) {
+            return trace.get(0).toString();
+        }
+        return "";
+    }
 
-	public long getCpuTimeMillis() {
-		return cpuTimeMillis;
-	}
+    public long getCpuTimeMillis() {
+        return cpuTimeMillis;
+    }
 
-	public long getUserTimeMillis() {
-		return userTimeMillis;
-	}
+    public long getUserTimeMillis() {
+        return userTimeMillis;
+    }
 
-	public boolean isDeadlocked() {
-		return deadlocked;
-	}
+    public boolean isDeadlocked() {
+        return deadlocked;
+    }
 
-	public String getGlobalThreadId() {
-		return globalThreadId;
-	}
+    public String getGlobalThreadId() {
+        return globalThreadId;
+    }
 
-	private static String buildGlobalThreadId(Thread thread, String hostAddress) {
-		return PID.getPID() + '_' + hostAddress + '_' + thread.getId();
-	}
+    private static String buildGlobalThreadId(Thread thread, String hostAddress) {
+        return PID.getPID() + '_' + hostAddress + '_' + thread.getId();
+    }
 
-	/** {@inheritDoc} */
-	@Override
-	public String toString() {
-		return getClass().getSimpleName() + "[id=" + getId() + ", name=" + getName() + ", daemon=" + isDaemon() + ", priority=" + getPriority() + ", deadlocked=" + isDeadlocked() + ", state="
-			+ getState() + ']';
-	}
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString() {
+        return getClass()
+                .getSimpleName() + "[id=" + getId() + ", name=" + getName() + ", daemon=" + isDaemon() + ", priority=" + getPriority() + ", deadlocked=" + isDeadlocked() + ", state="
+                + getState() + ']';
+    }
 }

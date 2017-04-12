@@ -19,32 +19,32 @@ import java.util.concurrent.atomic.AtomicLong;
  * @Create In 2015年9月6日
  */
 public class SLACountManager {
-	
-	private static SLACountManager slam = null;
-	
-	private AtomicLong sumInboundRequestCounts;
 
-	private AtomicLong sumOutboundRequestCounts;
+    private static SLACountManager slam = null;
 
-	private AtomicLong sumDealRequestCounts;
-	
-	private AtomicLong sumErrDealRequestCounts;
-	
-	private AtomicLong sumErrDealRequestTime;
+    private AtomicLong sumInboundRequestCounts;
 
-	private AtomicLong sumDealRequestTime;
-	
-	private AtomicBoolean isDebug;
-	
-	private AtomicLong peerDealRequestTime;
-	
-	private Date peerDate;
-	
-	
-	public static void init(){
-		if(slam == null){
-			slam = new SLACountManager();
-		}
+    private AtomicLong sumOutboundRequestCounts;
+
+    private AtomicLong sumDealRequestCounts;
+
+    private AtomicLong sumErrDealRequestCounts;
+
+    private AtomicLong sumErrDealRequestTime;
+
+    private AtomicLong sumDealRequestTime;
+
+    private AtomicBoolean isDebug;
+
+    private AtomicLong peerDealRequestTime;
+
+    private Date peerDate;
+
+
+    public static void init() {
+        if (slam == null) {
+            slam = new SLACountManager();
+        }
         slam.setIsDebug(new AtomicBoolean(
                 Boolean.valueOf(SystemPropertyConfig.getContextProperty("system.seeting.monitor.isDebug", "true"))));
         slam.setSumDealRequestCounts(new AtomicLong());
@@ -55,144 +55,143 @@ public class SLACountManager {
         slam.setSumErrDealRequestCounts(new AtomicLong());
         slam.setSumErrDealRequestTime(new AtomicLong());
         slam.setPeerDate(new Date());
-	}
-	
-	public static SLACountManager instance(){
-		if(slam == null){
+    }
+
+    public static SLACountManager instance() {
+        if (slam == null) {
             init();
-			return slam;
-		}else{
-			return slam;
-		}
-	}
+            return slam;
+        } else {
+            return slam;
+        }
+    }
 
-	
-	
-	/**
-	 * @Return the AtomicLong sumErrDealRequestCounts
-	 */
-	public AtomicLong getSumErrDealRequestCounts() {
-		return sumErrDealRequestCounts;
-	}
 
-	/**
-	 * @Param AtomicLong sumErrDealRequestCounts to set
-	 */
-	public void setSumErrDealRequestCounts(AtomicLong sumErrDealRequestCounts) {
-		this.sumErrDealRequestCounts = sumErrDealRequestCounts;
-	}
+    /**
+     * @Return the AtomicLong sumErrDealRequestCounts
+     */
+    public AtomicLong getSumErrDealRequestCounts() {
+        return sumErrDealRequestCounts;
+    }
 
-	/**
-	 * @Return the AtomicLong sumErrDealRequestTime
-	 */
-	public AtomicLong getSumErrDealRequestTime() {
-		return sumErrDealRequestTime;
-	}
+    /**
+     * @Param AtomicLong sumErrDealRequestCounts to set
+     */
+    public void setSumErrDealRequestCounts(AtomicLong sumErrDealRequestCounts) {
+        this.sumErrDealRequestCounts = sumErrDealRequestCounts;
+    }
 
-	/**
-	 * @Param AtomicLong sumErrDealRequestTime to set
-	 */
-	public void setSumErrDealRequestTime(AtomicLong sumErrDealRequestTime) {
-		this.sumErrDealRequestTime = sumErrDealRequestTime;
-	}
+    /**
+     * @Return the AtomicLong sumErrDealRequestTime
+     */
+    public AtomicLong getSumErrDealRequestTime() {
+        return sumErrDealRequestTime;
+    }
 
-	/**
-	 * @Return the AtomicLong sumInboundRequestCounts
-	 */
-	public AtomicLong getSumInboundRequestCounts() {
-		return sumInboundRequestCounts;
-	}
+    /**
+     * @Param AtomicLong sumErrDealRequestTime to set
+     */
+    public void setSumErrDealRequestTime(AtomicLong sumErrDealRequestTime) {
+        this.sumErrDealRequestTime = sumErrDealRequestTime;
+    }
 
-	/**
-	 * @Param AtomicLong sumInboundRequestCounts to set
-	 */
-	public void setSumInboundRequestCounts(AtomicLong sumInboundRequestCounts) {
-		this.sumInboundRequestCounts = sumInboundRequestCounts;
-	}
+    /**
+     * @Return the AtomicLong sumInboundRequestCounts
+     */
+    public AtomicLong getSumInboundRequestCounts() {
+        return sumInboundRequestCounts;
+    }
 
-	/**
-	 * @Return the AtomicLong sumOutboundRequestCounts
-	 */
-	public AtomicLong getSumOutboundRequestCounts() {
-		return sumOutboundRequestCounts;
-	}
+    /**
+     * @Param AtomicLong sumInboundRequestCounts to set
+     */
+    public void setSumInboundRequestCounts(AtomicLong sumInboundRequestCounts) {
+        this.sumInboundRequestCounts = sumInboundRequestCounts;
+    }
 
-	/**
-	 * @Param AtomicLong sumOutboundRequestCounts to set
-	 */
-	public void setSumOutboundRequestCounts(AtomicLong sumOutboundRequestCounts) {
-		this.sumOutboundRequestCounts = sumOutboundRequestCounts;
-	}
+    /**
+     * @Return the AtomicLong sumOutboundRequestCounts
+     */
+    public AtomicLong getSumOutboundRequestCounts() {
+        return sumOutboundRequestCounts;
+    }
 
-	/**
-	 * @Return the AtomicLong sumDealRequestCounts
-	 */
-	public AtomicLong getSumDealRequestCounts() {
-		return sumDealRequestCounts;
-	}
+    /**
+     * @Param AtomicLong sumOutboundRequestCounts to set
+     */
+    public void setSumOutboundRequestCounts(AtomicLong sumOutboundRequestCounts) {
+        this.sumOutboundRequestCounts = sumOutboundRequestCounts;
+    }
 
-	/**
-	 * @Param AtomicLong sumDealRequestCounts to set
-	 */
-	public void setSumDealRequestCounts(AtomicLong sumDealRequestCounts) {
-		this.sumDealRequestCounts = sumDealRequestCounts;
-	}
+    /**
+     * @Return the AtomicLong sumDealRequestCounts
+     */
+    public AtomicLong getSumDealRequestCounts() {
+        return sumDealRequestCounts;
+    }
 
-	/**
-	 * @Return the AtomicLong sumDealRequestTime
-	 */
-	public AtomicLong getSumDealRequestTime() {
-		return sumDealRequestTime;
-	}
+    /**
+     * @Param AtomicLong sumDealRequestCounts to set
+     */
+    public void setSumDealRequestCounts(AtomicLong sumDealRequestCounts) {
+        this.sumDealRequestCounts = sumDealRequestCounts;
+    }
 
-	/**
-	 * @Param AtomicLong sumDealRequestTime to set
-	 */
-	public void setSumDealRequestTime(AtomicLong sumDealRequestTime) {
-		this.sumDealRequestTime = sumDealRequestTime;
-	}
+    /**
+     * @Return the AtomicLong sumDealRequestTime
+     */
+    public AtomicLong getSumDealRequestTime() {
+        return sumDealRequestTime;
+    }
 
-	/**
-	 * @Return the AtomicBoolean isDebug
-	 */
-	public AtomicBoolean getIsDebug() {
-		return isDebug;
-	}
+    /**
+     * @Param AtomicLong sumDealRequestTime to set
+     */
+    public void setSumDealRequestTime(AtomicLong sumDealRequestTime) {
+        this.sumDealRequestTime = sumDealRequestTime;
+    }
 
-	/**
-	 * @Param AtomicBoolean isDebug to set
-	 */
-	public void setIsDebug(AtomicBoolean isDebug) {
-		this.isDebug = isDebug;
-	}
+    /**
+     * @Return the AtomicBoolean isDebug
+     */
+    public AtomicBoolean getIsDebug() {
+        return isDebug;
+    }
 
-	/**
-	 * @Return the AtomicLong peerDealRequestTime
-	 */
-	public AtomicLong getPeerDealRequestTime() {
-		return peerDealRequestTime;
-	}
+    /**
+     * @Param AtomicBoolean isDebug to set
+     */
+    public void setIsDebug(AtomicBoolean isDebug) {
+        this.isDebug = isDebug;
+    }
 
-	/**
-	 * @Param AtomicLong peerDealRequestTime to set
-	 */
-	public void setPeerDealRequestTime(AtomicLong peerDealRequestTime) {
-		this.peerDealRequestTime = peerDealRequestTime;
-	}
+    /**
+     * @Return the AtomicLong peerDealRequestTime
+     */
+    public AtomicLong getPeerDealRequestTime() {
+        return peerDealRequestTime;
+    }
 
-	/**
-	 * @Return the Date peerDate
-	 */
-	public Date getPeerDate() {
-		return peerDate;
-	}
+    /**
+     * @Param AtomicLong peerDealRequestTime to set
+     */
+    public void setPeerDealRequestTime(AtomicLong peerDealRequestTime) {
+        this.peerDealRequestTime = peerDealRequestTime;
+    }
 
-	/**
-	 * @Param Date peerDate to set
-	 */
-	public void setPeerDate(Date peerDate) {
-		this.peerDate = peerDate;
-	}
+    /**
+     * @Return the Date peerDate
+     */
+    public Date getPeerDate() {
+        return peerDate;
+    }
 
-	
+    /**
+     * @Param Date peerDate to set
+     */
+    public void setPeerDate(Date peerDate) {
+        this.peerDate = peerDate;
+    }
+
+
 }

@@ -8,8 +8,6 @@
 package com.wfj.monitor.dto;
 
 
-import com.wfj.monitor.dto.MemoryUsage;
-
 /**
  * @Class Name MemPoolInfo
  * @Author Jack
@@ -17,36 +15,36 @@ import com.wfj.monitor.dto.MemoryUsage;
  */
 public class MemPoolInfo {
 
-	private String memoryManagerNames;
-	
-	private MemoryUsage memoryUsage;
+    private String memoryManagerNames;
 
-	/**
-	 * @Return the String memoryManagerNames
-	 */
-	public String getMemoryManagerNames() {
-		return memoryManagerNames;
-	}
+    private MemoryUsage memoryUsage;
 
-	/**
-	 * @Param String memoryManagerNames to set
-	 */
-	public void setMemoryManagerNames(String memoryManagerNames) {
-		this.memoryManagerNames = memoryManagerNames;
-	}
+    /**
+     * @Return the String memoryManagerNames
+     */
+    public String getMemoryManagerNames() {
+        return memoryManagerNames;
+    }
 
-	/**
-	 * @Return the MemoryUsage memoryUsage
-	 */
-	public MemoryUsage getMemoryUsage() {
-		return memoryUsage;
-	}
+    /**
+     * @Param String memoryManagerNames to set
+     */
+    public void setMemoryManagerNames(String memoryManagerNames) {
+        this.memoryManagerNames = memoryManagerNames;
+    }
 
-	/**
-	 * @Param MemoryUsage memoryUsage to set
-	 */
-	public void setMemoryUsage(MemoryUsage memoryUsage) {
-		this.memoryUsage = memoryUsage;
-	}
-	
+    /**
+     * @Return the MemoryUsage memoryUsage
+     */
+    public MemoryUsage getMemoryUsage() {
+        return memoryUsage;
+    }
+
+    /**
+     * @Param MemoryUsage memoryUsage to set
+     */
+    public void setMemoryUsage(MemoryUsage memoryUsage) {
+        this.memoryUsage = memoryUsage;
+    }
+
 }

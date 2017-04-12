@@ -51,9 +51,10 @@ public class MonitorAgent {
         RequestWrapper.SINGLETON.initServletContext(SERVLET_CONTEXT);
 
         int port;
-        if(javaInformations.getTomcatInformationsList().isEmpty()){
-            port = Integer.valueOf(System.getProperty(Constant.SYSTEM_SEETING_SERVER_DEFAULT_SERVER_PORT, Constant.SYSTEM_SEETING_SERVER_DEFAULT_SERVER_PORT_VALUE));
-        }else {
+        if (javaInformations.getTomcatInformationsList().isEmpty()) {
+            port = Integer.valueOf(System.getProperty(Constant.SYSTEM_SEETING_SERVER_DEFAULT_SERVER_PORT,
+                    Constant.SYSTEM_SEETING_SERVER_DEFAULT_SERVER_PORT_VALUE));
+        } else {
             port = Integer.valueOf(javaInformations.getTomcatInformationsList().get(0).getHttpPort());
         }
         com.wfj.monitor.common.Constant.SERVER_PORT = port;

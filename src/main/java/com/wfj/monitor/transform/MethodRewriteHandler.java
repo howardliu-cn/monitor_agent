@@ -16,7 +16,7 @@ public class MethodRewriteHandler {
     private static final MethodRewriteHandler _HANDLER = new MethodRewriteHandler();
     protected MethodRewriteHandler handler = null;
 
-    static{
+    static {
         _HANDLER.addLast(HttpServletMethodRewriteHandler.instance())
                 .addLast(SqlMethodRewriteHandler.instance());
     }

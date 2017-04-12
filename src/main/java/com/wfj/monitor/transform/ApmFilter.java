@@ -5,9 +5,7 @@ import com.wfj.monitor.conf.SystemPropertyConfig;
 import java.util.HashSet;
 import java.util.Set;
 
-import static com.wfj.monitor.common.Constant.SYSTEM_SETTING_EXCLUDE_PACKAGE;
-import static com.wfj.monitor.common.Constant.SYSTEM_SETTING_INCLUDE_PACKAGE;
-import static com.wfj.monitor.common.Constant.SYSTEM_SETTING_EXCLUDE_CLASS_LOADER;
+import static com.wfj.monitor.common.Constant.*;
 
 /**
  * <br>created at 17-3-22

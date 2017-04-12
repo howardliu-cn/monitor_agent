@@ -25,86 +25,94 @@ import java.io.OutputStream;
 /**
  * Output stream pour un filtre implémentant ServletOutputStream à partir d'un
  * autre ServletOutputStream ou d'un OutputStream.
- * 
+ *
  * @author Emeric Vernat
  */
 class FilterServletOutputStream extends ServletOutputStream {
-	private final OutputStream stream;
-	private final ServletOutputStream servletOutputStream;
-	private boolean closed;
+    private final OutputStream stream;
+    private final ServletOutputStream servletOutputStream;
+    private boolean closed;
 
-	/**
-	 * Constructeur.
-	 * 
-	 * @param output
-	 *            ServletOutputStream
-	 */
-	FilterServletOutputStream(ServletOutputStream output) {
-		super();
-		assert output != null;
-		stream = output;
-		servletOutputStream = output;
-	}
+    /**
+     * Constructeur.
+     *
+     * @param output ServletOutputStream
+     */
+    FilterServletOutputStream(ServletOutputStream output) {
+        super();
+        assert output != null;
+        stream = output;
+        servletOutputStream = output;
+    }
 
-	/**
-	 * Constructeur.
-	 * 
-	 * @param output
-	 *            OutputStream
-	 */
-	FilterServletOutputStream(OutputStream output) {
-		super();
-		assert output != null;
-		stream = output;
-		servletOutputStream = null;
-	}
+    /**
+     * Constructeur.
+     *
+     * @param output OutputStream
+     */
+    FilterServletOutputStream(OutputStream output) {
+        super();
+        assert output != null;
+        stream = output;
+        servletOutputStream = null;
+    }
 
-	/** {@inheritDoc} */
-	@Override
-	public void close() throws IOException {
-		stream.close();
-		closed = true;
-	}
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void close() throws IOException {
+        stream.close();
+        closed = true;
+    }
 
-	/** {@inheritDoc} */
-	@Override
-	public void flush() throws IOException {
-		// issue 532: do not flush a closed output stream
-		if (!closed) {
-			stream.flush();
-		}
-	}
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void flush() throws IOException {
+        // issue 532: do not flush a closed output stream
+        if (!closed) {
+            stream.flush();
+        }
+    }
 
-	/** {@inheritDoc} */
-	@Override
-	public void write(int b) throws IOException {
-		stream.write(b);
-	}
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void write(int b) throws IOException {
+        stream.write(b);
+    }
 
-	/** {@inheritDoc} */
-	@Override
-	public void write(byte[] bytes) throws IOException {
-		stream.write(bytes);
-	}
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void write(byte[] bytes) throws IOException {
+        stream.write(bytes);
+    }
 
-	/** {@inheritDoc} */
-	@Override
-	public void write(byte[] bytes, int off, int len) throws IOException {
-		stream.write(bytes, off, len);
-	}
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void write(byte[] bytes, int off, int len) throws IOException {
+        stream.write(bytes, off, len);
+    }
 
-	@Override
-	public boolean isReady() {
-		if (servletOutputStream != null) {
-			return servletOutputStream.isReady();
-		}
-		return true;
-	}
+    @Override
+    public boolean isReady() {
+        if (servletOutputStream != null) {
+            return servletOutputStream.isReady();
+        }
+        return true;
+    }
 
-	@Override
-	public void setWriteListener(WriteListener writeListener) {
-		if (servletOutputStream != null) {
-			servletOutputStream.setWriteListener(writeListener);
-		}
-	}
+    @Override
+    public void setWriteListener(WriteListener writeListener) {
+        if (servletOutputStream != null) {
+            servletOutputStream.setWriteListener(writeListener);
+        }
+    }
 }

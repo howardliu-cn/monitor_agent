@@ -24,70 +24,73 @@ import java.io.OutputStream;
 /**
  * Implémentation de ServletOutputStream qui fonctionne avec le
  * CounterServletResponseWrapper.
- * 
+ *
  * @author Emeric Vernat
  */
 public class CounterResponseStream extends FilterServletOutputStream {
-	private int dataLength;
+    private int dataLength;
 
-	/**
-	 * Construit un servlet output stream associé avec la réponse spécifiée.
-	 * 
-	 * @param response
-	 *            HttpServletResponse
-	 * @throws java.io.IOException
-	 *             Erreur d'entrée/sortie
-	 */
-	public CounterResponseStream(HttpServletResponse response) throws IOException {
-		super(response.getOutputStream());
-	}
+    /**
+     * Construit un servlet output stream associé avec la réponse spécifiée.
+     *
+     * @param response HttpServletResponse
+     * @throws java.io.IOException Erreur d'entrée/sortie
+     */
+    public CounterResponseStream(HttpServletResponse response) throws IOException {
+        super(response.getOutputStream());
+    }
 
-	/**
-	 * Construit un servlet output stream associé avec l'output stream
-	 * spécifiée.
-	 * 
-	 * @param output
-	 *            OutputStream
-	 */
-	public CounterResponseStream(OutputStream output) {
-		super(output);
-	}
+    /**
+     * Construit un servlet output stream associé avec l'output stream
+     * spécifiée.
+     *
+     * @param output OutputStream
+     */
+    public CounterResponseStream(OutputStream output) {
+        super(output);
+    }
 
-	/**
-	 * Retourne la valeur de la propriété dataLength.
-	 * 
-	 * @return int
-	 */
-	public int getDataLength() {
-		return dataLength;
-	}
+    /**
+     * Retourne la valeur de la propriété dataLength.
+     *
+     * @return int
+     */
+    public int getDataLength() {
+        return dataLength;
+    }
 
-	/**
-	 * Réinitialiser dataLength à 0.
-	 */
-	public void reset() {
-		dataLength = 0;
-	}
+    /**
+     * Réinitialiser dataLength à 0.
+     */
+    public void reset() {
+        dataLength = 0;
+    }
 
-	/** {@inheritDoc} */
-	@Override
-	public void write(int i) throws IOException {
-		super.write(i);
-		dataLength += 1;
-	}
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void write(int i) throws IOException {
+        super.write(i);
+        dataLength += 1;
+    }
 
-	/** {@inheritDoc} */
-	@Override
-	public void write(byte[] bytes) throws IOException {
-		super.write(bytes);
-		final int len = bytes.length;
-		dataLength += len;
-	}
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void write(byte[] bytes) throws IOException {
+        super.write(bytes);
+        final int len = bytes.length;
+        dataLength += len;
+    }
 
-	/** {@inheritDoc} */
-	@Override
-	public void write(byte[] bytes, int off, int len) throws IOException {
-		super.write(bytes, off, len);
-		dataLength += len;
-	}
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void write(byte[] bytes, int off, int len) throws IOException {
+        super.write(bytes, off, len);
+        dataLength += len;
+    }
 }

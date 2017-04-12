@@ -42,304 +42,310 @@ import java.util.regex.Pattern;
 
 /**
  * Simple Wrapper class to inspect payload for name.
+ *
  * @author dhartford, roy.paterson, evernat
  */
 public class PayloadNameRequestWrapper extends HttpServletRequestWrapper {
-	
-	private static Logger log = LoggerFactory.getLogger(PayloadNameRequestWrapper.class);
-	
-	private static final Pattern GWT_RPC_SEPARATOR_CHAR_PATTERN = Pattern
-			.compile(Pattern.quote("|"));
 
-	/**
-	 * Name of request, or null if we don't know based on payload @null
-	 */
-	private String name;
+    private static Logger log = LoggerFactory.getLogger(PayloadNameRequestWrapper.class);
 
-	/**
-	 * Type of request if name != null, or null if we don't know based on the payload @null
-	 */
-	private String requestType;
+    private static final Pattern GWT_RPC_SEPARATOR_CHAR_PATTERN = Pattern
+            .compile(Pattern.quote("|"));
 
-	private BufferedInputStream bufferedInputStream;
-	private ServletInputStream inputStream;
-	private BufferedReader reader;
+    /**
+     * Name of request, or null if we don't know based on payload @null
+     */
+    private String name;
 
-	/**
-	 * Constructor.
-	 * @param request the original HttpServletRequest
-	 */
-	public PayloadNameRequestWrapper(HttpServletRequest request) {
-		super(request);
-	}
+    /**
+     * Type of request if name != null, or null if we don't know based on the payload @null
+     */
+    private String requestType;
 
-	protected void initialize() throws IOException {
-		//name on a best-effort basis
-		name = null;
-		requestType = null;
+    private BufferedInputStream bufferedInputStream;
+    private ServletInputStream inputStream;
+    private BufferedReader reader;
 
-		final HttpServletRequest request = (HttpServletRequest) getRequest();
-		final String contentType = request.getContentType();
-		if (contentType == null) {
-			//don't know how to handle this content type
-			return;
-		}
+    /**
+     * Constructor.
+     *
+     * @param request the original HttpServletRequest
+     */
+    public PayloadNameRequestWrapper(HttpServletRequest request) {
+        super(request);
+    }
 
-		if (!"POST".equalsIgnoreCase(request.getMethod())) {
-			//no payload
-			return;
-		}
+    protected void initialize() throws IOException {
+        //name on a best-effort basis
+        name = null;
+        requestType = null;
 
-		//Try look for name in payload on a best-effort basis...
-		try {
-			if (contentType.startsWith("text/x-gwt-rpc")) {
-				//parse GWT-RPC method name
-				name = parseGwtRpcMethodName(getBufferedInputStream(), getCharacterEncoding());
-				requestType = "GWT-RPC";
-			} else if (contentType.startsWith("application/soap+xml") //SOAP 1.2
-					|| contentType.startsWith("text/xml") //SOAP 1.1
-							&& request.getHeader("SOAPAction") != null) {
-				//parse SOAP method name
-				name = parseSoapMethodName(getBufferedInputStream(), getCharacterEncoding());
-				requestType = "SOAP";
-			} else {
-				//don't know how to name this request based on payload
-				//(don't parse if text/xml for XML-RPC, because it is obsolete)
-				name = null;
-				requestType = null;
-			}
-		} catch (final Exception e) {
-			log.debug("Error trying to parse payload content for request name", e);
+        final HttpServletRequest request = (HttpServletRequest) getRequest();
+        final String contentType = request.getContentType();
+        if (contentType == null) {
+            //don't know how to handle this content type
+            return;
+        }
 
-			//best-effort - couldn't figure it out
-			name = null;
-			requestType = null;
-		} finally {
-			//reset stream so application is unaffected
-			resetBufferedInputStream();
-		}
-	}
+        if (!"POST".equalsIgnoreCase(request.getMethod())) {
+            //no payload
+            return;
+        }
 
-	protected BufferedInputStream getBufferedInputStream() throws IOException {
-		if (bufferedInputStream == null) {
-			//workaround Tomcat issue with form POSTs
-			//see http://stackoverflow.com/questions/18489399/read-httpservletrequests-post-body-and-then-call-getparameter-in-tomcat
-			final ServletRequest request = getRequest();
-			request.getParameterMap();
+        //Try look for name in payload on a best-effort basis...
+        try {
+            if (contentType.startsWith("text/x-gwt-rpc")) {
+                //parse GWT-RPC method name
+                name = parseGwtRpcMethodName(getBufferedInputStream(), getCharacterEncoding());
+                requestType = "GWT-RPC";
+            } else if (contentType.startsWith("application/soap+xml") //SOAP 1.2
+                    || contentType.startsWith("text/xml") //SOAP 1.1
+                    && request.getHeader("SOAPAction") != null) {
+                //parse SOAP method name
+                name = parseSoapMethodName(getBufferedInputStream(), getCharacterEncoding());
+                requestType = "SOAP";
+            } else {
+                //don't know how to name this request based on payload
+                //(don't parse if text/xml for XML-RPC, because it is obsolete)
+                name = null;
+                requestType = null;
+            }
+        } catch (final Exception e) {
+            log.debug("Error trying to parse payload content for request name", e);
 
-			//buffer the payload so we can inspect it
-			bufferedInputStream = new BufferedInputStream(request.getInputStream());
-			// and mark to allow the stream to be reset
-			bufferedInputStream.mark(Integer.MAX_VALUE);
-		}
-		return bufferedInputStream;
-	}
+            //best-effort - couldn't figure it out
+            name = null;
+            requestType = null;
+        } finally {
+            //reset stream so application is unaffected
+            resetBufferedInputStream();
+        }
+    }
 
-	protected void resetBufferedInputStream() throws IOException {
-		if (bufferedInputStream != null) {
-			bufferedInputStream.reset();
-		}
-	}
+    protected BufferedInputStream getBufferedInputStream() throws IOException {
+        if (bufferedInputStream == null) {
+            //workaround Tomcat issue with form POSTs
+            //see http://stackoverflow.com/questions/18489399/read-httpservletrequests-post-body-and-then-call-getparameter-in-tomcat
+            final ServletRequest request = getRequest();
+            request.getParameterMap();
 
-	/**
-	 * Try to parse GWT-RPC method name from request body stream.  Does not close the stream.
-	 *
-	 * @param stream GWT-RPC request body stream @nonnull
-	 * @param charEncoding character encoding of stream, or null for platform default @null
-	 * @return GWT-RPC method name, or null if unable to parse @null
-	 */
-	@SuppressWarnings("resource")
-	private static String parseGwtRpcMethodName(InputStream stream, String charEncoding) {
-		//commented out code uses GWT-user library for a more 'proper' approach.
-		//GWT-user library approach is more future-proof, but requires more dependency management.
-		//				RPCRequest decodeRequest = RPC.decodeRequest(readLine);
-		//				gwtmethodname = decodeRequest.getMethod().getName();
+            //buffer the payload so we can inspect it
+            bufferedInputStream = new BufferedInputStream(request.getInputStream());
+            // and mark to allow the stream to be reset
+            bufferedInputStream.mark(Integer.MAX_VALUE);
+        }
+        return bufferedInputStream;
+    }
 
-		try {
-			final Scanner scanner;
-			if (charEncoding == null) {
-				scanner = new Scanner(stream);
-			} else {
-				scanner = new Scanner(stream, charEncoding);
-			}
-			scanner.useDelimiter(GWT_RPC_SEPARATOR_CHAR_PATTERN); //AbstractSerializationStream.RPC_SEPARATOR_CHAR
+    protected void resetBufferedInputStream() throws IOException {
+        if (bufferedInputStream != null) {
+            bufferedInputStream.reset();
+        }
+    }
 
-			//AbstractSerializationStreamReader.prepareToRead(...)
-			scanner.next(); //stream version number
-			scanner.next(); //flags
+    /**
+     * Try to parse GWT-RPC method name from request body stream.  Does not close the stream.
+     *
+     * @param stream       GWT-RPC request body stream @nonnull
+     * @param charEncoding character encoding of stream, or null for platform default @null
+     * @return GWT-RPC method name, or null if unable to parse @null
+     */
+    @SuppressWarnings("resource")
+    private static String parseGwtRpcMethodName(InputStream stream, String charEncoding) {
+        //commented out code uses GWT-user library for a more 'proper' approach.
+        //GWT-user library approach is more future-proof, but requires more dependency management.
+        //				RPCRequest decodeRequest = RPC.decodeRequest(readLine);
+        //				gwtmethodname = decodeRequest.getMethod().getName();
 
-			//ServerSerializationStreamReader.deserializeStringTable()
-			scanner.next(); //type name count
+        try {
+            final Scanner scanner;
+            if (charEncoding == null) {
+                scanner = new Scanner(stream);
+            } else {
+                scanner = new Scanner(stream, charEncoding);
+            }
+            scanner.useDelimiter(GWT_RPC_SEPARATOR_CHAR_PATTERN); //AbstractSerializationStream.RPC_SEPARATOR_CHAR
 
-			//ServerSerializationStreamReader.preapreToRead(...)
-			scanner.next(); //module base URL
-			scanner.next(); //strong name
+            //AbstractSerializationStreamReader.prepareToRead(...)
+            scanner.next(); //stream version number
+            scanner.next(); //flags
 
-			//RPC.decodeRequest(...)
-			scanner.next(); //service interface name
-			return "." + scanner.next(); //service method name
+            //ServerSerializationStreamReader.deserializeStringTable()
+            scanner.next(); //type name count
 
-			//note we don't close the scanner because we don't want to close the underlying stream
-		} catch (final NoSuchElementException e) {
-			log.debug("Unable to parse GWT-RPC request", e);
+            //ServerSerializationStreamReader.preapreToRead(...)
+            scanner.next(); //module base URL
+            scanner.next(); //strong name
 
-			//code above is best-effort - we were unable to parse GWT payload so
-			//treat as a normal HTTP request
-			return null;
-		}
-	}
+            //RPC.decodeRequest(...)
+            scanner.next(); //service interface name
+            return "." + scanner.next(); //service method name
 
-	/**
-	 * Scan xml for tag child of the current element
-	 *
-	 * @param reader reader, must be at "start element" @nonnull
-	 * @param tagName name of child tag to find @nonnull
-	 * @return if found tag
-	 * @throws javax.xml.stream.XMLStreamException on error
-	 */
-	static boolean scanForChildTag(XMLStreamReader reader, String tagName)
-			throws XMLStreamException {
-		assert reader.isStartElement();
+            //note we don't close the scanner because we don't want to close the underlying stream
+        } catch (final NoSuchElementException e) {
+            log.debug("Unable to parse GWT-RPC request", e);
 
-		int level = -1;
-		while (reader.hasNext()) {
-			//keep track of level so we only search children, not descendants
-			if (reader.isStartElement()) {
-				level++;
-			} else if (reader.isEndElement()) {
-				level--;
-			}
-			if (level < 0) {
-				//end parent tag - no more children
-				break;
-			}
+            //code above is best-effort - we were unable to parse GWT payload so
+            //treat as a normal HTTP request
+            return null;
+        }
+    }
 
-			reader.next();
+    /**
+     * Scan xml for tag child of the current element
+     *
+     * @param reader  reader, must be at "start element" @nonnull
+     * @param tagName name of child tag to find @nonnull
+     * @return if found tag
+     * @throws javax.xml.stream.XMLStreamException on error
+     */
+    static boolean scanForChildTag(XMLStreamReader reader, String tagName)
+            throws XMLStreamException {
+        assert reader.isStartElement();
 
-			if (level == 0 && reader.isStartElement() && reader.getLocalName().equals(tagName)) {
-				return true; //found
-			}
-		}
-		return false; //got to end of parent element and not found
-	}
+        int level = -1;
+        while (reader.hasNext()) {
+            //keep track of level so we only search children, not descendants
+            if (reader.isStartElement()) {
+                level++;
+            } else if (reader.isEndElement()) {
+                level--;
+            }
+            if (level < 0) {
+                //end parent tag - no more children
+                break;
+            }
 
-	/**
-	 * Try to parse SOAP method name from request body stream.  Does not close the stream.
-	 *
-	 * @param stream SOAP request body stream @nonnull
-	 * @param charEncoding character encoding of stream, or null for platform default @null
-	 * @return SOAP method name, or null if unable to parse @null
-	 */
-	private static String parseSoapMethodName(InputStream stream, String charEncoding) {
-		try {
-			// newInstance() et pas newFactory() pour java 1.5 (issue 367)
-			final XMLInputFactory factory = XMLInputFactory.newInstance();
-			final XMLStreamReader xmlReader;
-			if (charEncoding != null) {
-				xmlReader = factory.createXMLStreamReader(stream, charEncoding);
-			} else {
-				xmlReader = factory.createXMLStreamReader(stream);
-			}
+            reader.next();
 
-			//best-effort parsing
+            if (level == 0 && reader.isStartElement() && reader.getLocalName().equals(tagName)) {
+                return true; //found
+            }
+        }
+        return false; //got to end of parent element and not found
+    }
 
-			//start document, go to first tag
-			xmlReader.nextTag();
+    /**
+     * Try to parse SOAP method name from request body stream.  Does not close the stream.
+     *
+     * @param stream       SOAP request body stream @nonnull
+     * @param charEncoding character encoding of stream, or null for platform default @null
+     * @return SOAP method name, or null if unable to parse @null
+     */
+    private static String parseSoapMethodName(InputStream stream, String charEncoding) {
+        try {
+            // newInstance() et pas newFactory() pour java 1.5 (issue 367)
+            final XMLInputFactory factory = XMLInputFactory.newInstance();
+            final XMLStreamReader xmlReader;
+            if (charEncoding != null) {
+                xmlReader = factory.createXMLStreamReader(stream, charEncoding);
+            } else {
+                xmlReader = factory.createXMLStreamReader(stream);
+            }
 
-			//expect first tag to be "Envelope"
-			if (!"Envelope".equals(xmlReader.getLocalName())) {
-				log.debug("Unexpected first tag of SOAP request: '" + xmlReader.getLocalName()
-						+ "' (expected 'Envelope')");
-				return null; //failed
-			}
+            //best-effort parsing
 
-			//scan for body tag
-			if (!scanForChildTag(xmlReader, "Body")) {
-				log.debug("Unable to find SOAP 'Body' tag");
-				return null; //failed
-			}
+            //start document, go to first tag
+            xmlReader.nextTag();
 
-			xmlReader.nextTag();
+            //expect first tag to be "Envelope"
+            if (!"Envelope".equals(xmlReader.getLocalName())) {
+                log.debug("Unexpected first tag of SOAP request: '" + xmlReader.getLocalName()
+                        + "' (expected 'Envelope')");
+                return null; //failed
+            }
 
-			//tag is method name
-			return "." + xmlReader.getLocalName();
-		} catch (final XMLStreamException e) {
-			log.debug("Unable to parse SOAP request", e);
-			//failed
-			return null;
-		}
-	}
+            //scan for body tag
+            if (!scanForChildTag(xmlReader, "Body")) {
+                log.debug("Unable to find SOAP 'Body' tag");
+                return null; //failed
+            }
 
-	/** {@inheritDoc} */
-	@Override
-	public BufferedReader getReader() throws IOException {
-		if (bufferedInputStream == null) {
-			return super.getReader();
-		}
-		if (reader == null) {
-			// use character encoding as said in the API
-			final String characterEncoding = this.getCharacterEncoding();
-			if (characterEncoding == null) {
-				reader = new BufferedReader(new InputStreamReader(this.getInputStream()));
-			} else {
-				reader = new BufferedReader(
-						new InputStreamReader(this.getInputStream(), characterEncoding));
-			}
-		}
-		return reader;
-	}
+            xmlReader.nextTag();
 
-	/** {@inheritDoc} */
-	@Override
-	public ServletInputStream getInputStream() throws IOException {
-		final ServletInputStream requestInputStream = super.getInputStream();
-		if (bufferedInputStream == null) {
-			return requestInputStream;
-		}
-		if (inputStream == null) {
-			final BufferedInputStream myBufferedInputStream = bufferedInputStream;
-			//CHECKSTYLE:OFF
-			inputStream = new ServletInputStream() {
-				//CHECKSTYLE:ON
-				@Override
-				public int read() throws IOException {
-					return myBufferedInputStream.read();
-				}
+            //tag is method name
+            return "." + xmlReader.getLocalName();
+        } catch (final XMLStreamException e) {
+            log.debug("Unable to parse SOAP request", e);
+            //failed
+            return null;
+        }
+    }
 
-				@Override
-				public boolean isFinished() {
-					return requestInputStream.isFinished();
-				}
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public BufferedReader getReader() throws IOException {
+        if (bufferedInputStream == null) {
+            return super.getReader();
+        }
+        if (reader == null) {
+            // use character encoding as said in the API
+            final String characterEncoding = this.getCharacterEncoding();
+            if (characterEncoding == null) {
+                reader = new BufferedReader(new InputStreamReader(this.getInputStream()));
+            } else {
+                reader = new BufferedReader(
+                        new InputStreamReader(this.getInputStream(), characterEncoding));
+            }
+        }
+        return reader;
+    }
 
-				@Override
-				public boolean isReady() {
-					return requestInputStream.isReady();
-				}
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public ServletInputStream getInputStream() throws IOException {
+        final ServletInputStream requestInputStream = super.getInputStream();
+        if (bufferedInputStream == null) {
+            return requestInputStream;
+        }
+        if (inputStream == null) {
+            final BufferedInputStream myBufferedInputStream = bufferedInputStream;
+            //CHECKSTYLE:OFF
+            inputStream = new ServletInputStream() {
+                //CHECKSTYLE:ON
+                @Override
+                public int read() throws IOException {
+                    return myBufferedInputStream.read();
+                }
 
-				@Override
-				public void setReadListener(ReadListener readListener) {
-					requestInputStream.setReadListener(readListener);
-				}
-			};
-		}
-		return inputStream;
-	}
+                @Override
+                public boolean isFinished() {
+                    return requestInputStream.isFinished();
+                }
 
-	/**
-	 * @return name of request, or null if we can't figure out a good name based on
-	 *   the request payload @null
-	 */
-	public String getPayloadRequestName() {
-		return name;
-	}
+                @Override
+                public boolean isReady() {
+                    return requestInputStream.isReady();
+                }
 
-	/**
-	 * Get type of request.  If {@link #getPayloadRequestName()} returns non-null then
-	 * this method also returns non-null.
-	 *
-	 * @return type of request if or null if don't know @null
-	 */
-	public String getPayloadRequestType() {
-		return requestType;
-	}
+                @Override
+                public void setReadListener(ReadListener readListener) {
+                    requestInputStream.setReadListener(readListener);
+                }
+            };
+        }
+        return inputStream;
+    }
+
+    /**
+     * @return name of request, or null if we can't figure out a good name based on
+     * the request payload @null
+     */
+    public String getPayloadRequestName() {
+        return name;
+    }
+
+    /**
+     * Get type of request.  If {@link #getPayloadRequestName()} returns non-null then
+     * this method also returns non-null.
+     *
+     * @return type of request if or null if don't know @null
+     */
+    public String getPayloadRequestType() {
+        return requestType;
+    }
 }

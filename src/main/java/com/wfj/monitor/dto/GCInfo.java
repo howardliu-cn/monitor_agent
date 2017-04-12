@@ -14,51 +14,51 @@ package com.wfj.monitor.dto;
  */
 public class GCInfo {
 
-	private String name;
-	
-	private long collectionCount;
-	
-	private long collectionTime;
+    private String name;
 
-	/**
-	 * @Return the String name
-	 */
-	public String getName() {
-		return name;
-	}
+    private long collectionCount;
 
-	/**
-	 * @Param String name to set
-	 */
-	public void setName(String name) {
-		this.name = name;
-	}
+    private long collectionTime;
 
-	/**
-	 * @Return the long collectionCount
-	 */
-	public long getCollectionCount() {
-		return collectionCount;
-	}
+    /**
+     * @Return the String name
+     */
+    public String getName() {
+        return name;
+    }
 
-	/**
-	 * @Param long collectionCount to set
-	 */
-	public void setCollectionCount(long collectionCount) {
-		this.collectionCount = collectionCount;
-	}
+    /**
+     * @Param String name to set
+     */
+    public void setName(String name) {
+        this.name = name;
+    }
 
-	/**
-	 * @Return the long collectionTime
-	 */
-	public long getCollectionTime() {
-		return collectionTime;
-	}
+    /**
+     * @Return the long collectionCount
+     */
+    public long getCollectionCount() {
+        return collectionCount;
+    }
 
-	/**
-	 * @Param long collectionTime to set
-	 */
-	public void setCollectionTime(long collectionTime) {
-		this.collectionTime = collectionTime;
-	}
+    /**
+     * @Param long collectionCount to set
+     */
+    public void setCollectionCount(long collectionCount) {
+        this.collectionCount = collectionCount;
+    }
+
+    /**
+     * @Return the long collectionTime
+     */
+    public long getCollectionTime() {
+        return collectionTime;
+    }
+
+    /**
+     * @Param long collectionTime to set
+     */
+    public void setCollectionTime(long collectionTime) {
+        this.collectionTime = collectionTime;
+    }
 }

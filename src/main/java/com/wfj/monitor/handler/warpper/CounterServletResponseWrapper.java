@@ -24,58 +24,63 @@ import java.io.IOException;
 /**
  * Implémentation de FilterServletResponseWrapper qui fonctionne avec le
  * CounterResponseStream, pour calculer la taille du flux de réponse.
- * 
+ *
  * @author Emeric Vernat
  */
 public class CounterServletResponseWrapper extends FilterServletResponseWrapper {
-	/**
-	 * Constructeur qui crée un adapteur de HttpServletResponse wrappant la
-	 * response spécifiée.
-	 * 
-	 * @param response
-	 *            HttpServletResponse
-	 */
-	public CounterServletResponseWrapper(HttpServletResponse response) {
-		super(response);
-		assert response != null;
-	}
+    /**
+     * Constructeur qui crée un adapteur de HttpServletResponse wrappant la
+     * response spécifiée.
+     *
+     * @param response HttpServletResponse
+     */
+    public CounterServletResponseWrapper(HttpServletResponse response) {
+        super(response);
+        assert response != null;
+    }
 
-	/**
-	 * Retourne la taille en octets du flux écrit dans la réponse.
-	 * 
-	 * @return int
-	 */
-	public int getDataLength() {
-		return getCounterResponseStream() == null ? 0 : getCounterResponseStream().getDataLength();
-	}
+    /**
+     * Retourne la taille en octets du flux écrit dans la réponse.
+     *
+     * @return int
+     */
+    public int getDataLength() {
+        return getCounterResponseStream() == null ? 0 : getCounterResponseStream().getDataLength();
+    }
 
-	/** {@inheritDoc} */
-	@Override
-	public void reset() {
-		super.reset();
-		resetStream();
-	}
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void reset() {
+        super.reset();
+        resetStream();
+    }
 
-	/** {@inheritDoc} */
-	@Override
-	public void resetBuffer() {
-		super.resetBuffer();
-		resetStream();
-	}
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void resetBuffer() {
+        super.resetBuffer();
+        resetStream();
+    }
 
-	private void resetStream() {
-		if (getCounterResponseStream() != null) {
-			getCounterResponseStream().reset();
-		}
-	}
+    private void resetStream() {
+        if (getCounterResponseStream() != null) {
+            getCounterResponseStream().reset();
+        }
+    }
 
-	private CounterResponseStream getCounterResponseStream() {
-		return (CounterResponseStream) getStream();
-	}
+    private CounterResponseStream getCounterResponseStream() {
+        return (CounterResponseStream) getStream();
+    }
 
-	/** {@inheritDoc} */
-	@Override
-	public ServletOutputStream createOutputStream() throws IOException {
-		return new CounterResponseStream((HttpServletResponse) getResponse());
-	}
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public ServletOutputStream createOutputStream() throws IOException {
+        return new CounterResponseStream((HttpServletResponse) getResponse());
+    }
 }

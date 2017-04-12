@@ -19,129 +19,130 @@ import java.util.List;
  * @Create In 2016年7月27日
  */
 public class RequestInfo {
-	
-	private String sysCode;
-	
-	private String sysName;
-	
-	private String sysIPS;
-	
-	private String updateDate;
-	
-	private List<CounterRequest> requestDetails;
-	
-	private List<CounterRequest> errorDetails;
-	
-	private static RequestInfo REQUEST_INFO;
-	
-	private RequestInfo(){
 
-		DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-		
-		this.sysCode = "";
-		this.sysName = "";
-		this.sysIPS = "";
-		this.updateDate = df.format(new Date());
-		this.requestDetails = new ArrayList<CounterRequest>();
-		this.errorDetails = new ArrayList<CounterRequest>();
-	}
-	
-	/**
-	 * 获取实例
-	 * @Methods Name instance
-	 * @Create In 2016年7月27日 By Jack
-	 * @return RequestInfo
-	 */
-	public static RequestInfo instance(){
-		if(REQUEST_INFO != null){
-			return REQUEST_INFO;
-		}else{
-			REQUEST_INFO = new RequestInfo();
-			return REQUEST_INFO;
-		}
-	}
-	
-	/**
-	 * @Return the String sysCode
-	 */
-	public String getSysCode() {
-		return sysCode;
-	}
+    private String sysCode;
 
-	/**
-	 * @Param String sysCode to set
-	 */
-	public void setSysCode(String sysCode) {
-		this.sysCode = sysCode;
-	}
+    private String sysName;
 
-	/**
-	 * @Return the String sysName
-	 */
-	public String getSysName() {
-		return sysName;
-	}
+    private String sysIPS;
 
-	/**
-	 * @Param String sysName to set
-	 */
-	public void setSysName(String sysName) {
-		this.sysName = sysName;
-	}
+    private String updateDate;
 
-	/**
-	 * @Return the String sysIPS
-	 */
-	public String getSysIPS() {
-		return sysIPS;
-	}
+    private List<CounterRequest> requestDetails;
 
-	/**
-	 * @Param String sysIPS to set
-	 */
-	public void setSysIPS(String sysIPS) {
-		this.sysIPS = sysIPS;
-	}
+    private List<CounterRequest> errorDetails;
 
-	/**
-	 * @Return the String updateDate
-	 */
-	public String getUpdateDate() {
-		return updateDate;
-	}
+    private static RequestInfo REQUEST_INFO;
 
-	/**
-	 * @Param String updateDate to set
-	 */
-	public void setUpdateDate(String updateDate) {
-		this.updateDate = updateDate;
-	}
+    private RequestInfo() {
 
-	/**
-	 * @Return the List<CounterRequest> requestDetails
-	 */
-	public List<CounterRequest> getRequestDetails() {
-		return requestDetails;
-	}
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-	/**
-	 * @Param List<CounterRequest> requestDetails to set
-	 */
-	public void setRequestDetails(List<CounterRequest> requestDetails) {
-		this.requestDetails = requestDetails;
-	}
+        this.sysCode = "";
+        this.sysName = "";
+        this.sysIPS = "";
+        this.updateDate = df.format(new Date());
+        this.requestDetails = new ArrayList<CounterRequest>();
+        this.errorDetails = new ArrayList<CounterRequest>();
+    }
 
-	/**
-	 * @Return the List<CounterRequest> errorDetails
-	 */
-	public List<CounterRequest> getErrorDetails() {
-		return errorDetails;
-	}
+    /**
+     * 获取实例
+     *
+     * @return RequestInfo
+     * @Methods Name instance
+     * @Create In 2016年7月27日 By Jack
+     */
+    public static RequestInfo instance() {
+        if (REQUEST_INFO != null) {
+            return REQUEST_INFO;
+        } else {
+            REQUEST_INFO = new RequestInfo();
+            return REQUEST_INFO;
+        }
+    }
 
-	/**
-	 * @Param List<CounterRequest> errorDetails to set
-	 */
-	public void setErrorDetails(List<CounterRequest> errorDetails) {
-		this.errorDetails = errorDetails;
-	}
+    /**
+     * @Return the String sysCode
+     */
+    public String getSysCode() {
+        return sysCode;
+    }
+
+    /**
+     * @Param String sysCode to set
+     */
+    public void setSysCode(String sysCode) {
+        this.sysCode = sysCode;
+    }
+
+    /**
+     * @Return the String sysName
+     */
+    public String getSysName() {
+        return sysName;
+    }
+
+    /**
+     * @Param String sysName to set
+     */
+    public void setSysName(String sysName) {
+        this.sysName = sysName;
+    }
+
+    /**
+     * @Return the String sysIPS
+     */
+    public String getSysIPS() {
+        return sysIPS;
+    }
+
+    /**
+     * @Param String sysIPS to set
+     */
+    public void setSysIPS(String sysIPS) {
+        this.sysIPS = sysIPS;
+    }
+
+    /**
+     * @Return the String updateDate
+     */
+    public String getUpdateDate() {
+        return updateDate;
+    }
+
+    /**
+     * @Param String updateDate to set
+     */
+    public void setUpdateDate(String updateDate) {
+        this.updateDate = updateDate;
+    }
+
+    /**
+     * @Return the List<CounterRequest> requestDetails
+     */
+    public List<CounterRequest> getRequestDetails() {
+        return requestDetails;
+    }
+
+    /**
+     * @Param List<CounterRequest> requestDetails to set
+     */
+    public void setRequestDetails(List<CounterRequest> requestDetails) {
+        this.requestDetails = requestDetails;
+    }
+
+    /**
+     * @Return the List<CounterRequest> errorDetails
+     */
+    public List<CounterRequest> getErrorDetails() {
+        return errorDetails;
+    }
+
+    /**
+     * @Param List<CounterRequest> errorDetails to set
+     */
+    public void setErrorDetails(List<CounterRequest> errorDetails) {
+        this.errorDetails = errorDetails;
+    }
 }

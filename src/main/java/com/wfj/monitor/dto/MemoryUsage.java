@@ -14,19 +14,19 @@ package com.wfj.monitor.dto;
  */
 public class MemoryUsage {
 
-	private long init;
-	private long used;
-	private long committed;
-	private long max;
+    private long init;
+    private long used;
+    private long committed;
+    private long max;
 
-	
-	public MemoryUsage() {
-		super();
-		this.init = 0;
-		this.used = 0;
-		this.committed = 0;
-		this.max = 0;
-	}
+
+    public MemoryUsage() {
+        super();
+        this.init = 0;
+        this.used = 0;
+        this.committed = 0;
+        this.max = 0;
+    }
 
     public void clone(java.lang.management.MemoryUsage usage) {
         this.setInit(usage.getInit());
@@ -35,61 +35,61 @@ public class MemoryUsage {
         this.setMax(usage.getMax());
     }
 
-	/**
-	 * @Return the long init
-	 */
-	public long getInit() {
-		return init;
-	}
+    /**
+     * @Return the long init
+     */
+    public long getInit() {
+        return init;
+    }
 
-	/**
-	 * @Param long init to set
-	 */
-	public void setInit(long init) {
-		this.init = init;
-	}
+    /**
+     * @Param long init to set
+     */
+    public void setInit(long init) {
+        this.init = init;
+    }
 
-	/**
-	 * @Return the long used
-	 */
-	public long getUsed() {
-		return used;
-	}
+    /**
+     * @Return the long used
+     */
+    public long getUsed() {
+        return used;
+    }
 
-	/**
-	 * @Param long used to set
-	 */
-	public void setUsed(long used) {
-		this.used = used;
-	}
+    /**
+     * @Param long used to set
+     */
+    public void setUsed(long used) {
+        this.used = used;
+    }
 
-	/**
-	 * @Return the long committed
-	 */
-	public long getCommitted() {
-		return committed;
-	}
+    /**
+     * @Return the long committed
+     */
+    public long getCommitted() {
+        return committed;
+    }
 
-	/**
-	 * @Param long committed to set
-	 */
-	public void setCommitted(long committed) {
-		this.committed = committed;
-	}
+    /**
+     * @Param long committed to set
+     */
+    public void setCommitted(long committed) {
+        this.committed = committed;
+    }
 
-	/**
-	 * @Return the long max
-	 */
-	public long getMax() {
-		return max;
-	}
+    /**
+     * @Return the long max
+     */
+    public long getMax() {
+        return max;
+    }
 
-	/**
-	 * @Param long max to set
-	 */
-	public void setMax(long max) {
-		this.max = max;
-	}
+    /**
+     * @Param long max to set
+     */
+    public void setMax(long max) {
+        this.max = max;
+    }
 
 
 }

@@ -15,12 +15,12 @@ import com.wfj.monitor.handler.dto.MonitorLogger;
  * @Create In 2017年1月16日
  */
 public class MonitorLoggerFactory {
-	
-	public static MonitorLogger getLogger(Class clazz){
-		return new MonitorLogger(clazz);
-	}
 
-	public static MonitorLogger getLogger(String clazzName){
-		return new MonitorLogger(clazzName);
-	}
+    public static MonitorLogger getLogger(Class clazz) {
+        return new MonitorLogger(clazz);
+    }
+
+    public static MonitorLogger getLogger(String clazzName) {
+        return new MonitorLogger(clazzName);
+    }
 }
