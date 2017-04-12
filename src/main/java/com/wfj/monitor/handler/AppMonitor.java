@@ -12,19 +12,10 @@ import com.wfj.monitor.conf.EnvPropertyConfig;
 import com.wfj.monitor.conf.PropertyAdapter;
 import com.wfj.monitor.conf.SystemPropertyConfig;
 import com.wfj.monitor.dto.*;
-import com.wfj.monitor.handler.factory.KafkaConnectManager;
 import com.wfj.monitor.handler.factory.SLACountManager;
 import com.wfj.monitor.handler.warpper.JdbcWrapper;
 import com.wfj.monitor.handler.warpper.RequestWrapper;
 import com.wfj.monitor.util.JacksonMapperUtil;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.ZooDefs;
-import org.apache.zookeeper.ZooDefs.Ids;
-import org.apache.zookeeper.ZooKeeper;
-import org.apache.zookeeper.data.Stat;
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.map.JsonMappingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -94,43 +85,39 @@ public class AppMonitor {
 	 * 
 	 * @Methods Name buildMonitorRootInfo
 	 * @Create In 2015年9月7日 By Jack
-	 * @param zk
-	 *            Zookeeper实例
-	 * @param status
-	 *            一般为 Active
-	 * @throws KeeperException
+	 * @param status 一般为 Active
 	 * @throws InterruptedException
 	 * @return String AppServerPath 监控系统根目录地址
 	 */
-	public String buildMonitorRootInfo(ZooKeeper zk, String status) throws InterruptedException, KeeperException {
-		// 1.
-		// 判断用于监控的父节点是否存在，如不存在则建立，每个集成Netty-WFJ-Base的服务均会检查此配置，争抢建立,利用Zookeeper的原生节点创建锁完成
-		String rootPath = EnvPropertyConfig
-                .getContextProperty(Constant.SYSTEM_SEETING_SERVER_DEFAULT_SERVER_MONITOR_ROOT_PATH);
-		boolean isMonitorRootExist;
-		isMonitorRootExist = zk.exists(rootPath, true) != null;
+	public String buildMonitorRootInfo(String status) throws InterruptedException {
+		// 1. 判断用于监控的父节点是否存在，如不存在则建立，每个集成Netty-WFJ-Base的服务均会检查此配置，争抢建立,利用Zookeeper的原生节点创建锁完成
+		String rootPath = EnvPropertyConfig.getContextProperty(
+                Constant.SYSTEM_SEETING_SERVER_DEFAULT_SERVER_MONITOR_ROOT_PATH);
+		// TODO 确认ProxyServer是否连通
+		boolean isMonitorRootExist = false;
 		if (!isMonitorRootExist) {
 			Object[] tagArgs = { "Active" };
 			String rootDesc = EnvPropertyConfig.getContextProperty(Constant.SYSTEM_SEETING_SERVER_DEFAULT_SERVER_MONITOR_ROOT_DESC);
 			rootDesc = PropertyAdapter.formatter(rootDesc, tagArgs);
-			zk.create(rootPath, rootDesc.getBytes(), Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-		}
+			// TODO 发送初始化状态
+            System.out.println(rootDesc);
+        }
 
-		// 2.
-		// 判断用于监控的系统本身的父节点是否存在，如不存在则建立，建立过程每个此系统的实例争抢创建，利用Zookeeper的原生节点创建锁完成
-		String systemPath = rootPath + "/" + SystemPropertyConfig
-                .getContextProperty(Constant.SYSTEM_SEETING_SERVER_DEFAULT_CONTEXT_NAME) + "-" +
-									SystemPropertyConfig.getContextProperty(Constant.SYSTEM_SEETING_SERVER_DEFAULT_CONTEXT_CODE);
+		// 2. 判断用于监控的系统本身的父节点是否存在，如不存在则建立，建立过程每个此系统的实例争抢创建，利用Zookeeper的原生节点创建锁完成
+		String systemPath = rootPath + "/" +
+                SystemPropertyConfig.getContextProperty(Constant.SYSTEM_SEETING_SERVER_DEFAULT_CONTEXT_NAME)
+                + "-" +
+                SystemPropertyConfig.getContextProperty(Constant.SYSTEM_SEETING_SERVER_DEFAULT_CONTEXT_CODE);
 
-		String systemDesc = SystemPropertyConfig.getContextProperty(Constant.SYSTEM_SEETING_SERVER_DEFAULT_CONTEXT_NAME) + "-" +
-									SystemPropertyConfig.getContextProperty(Constant.SYSTEM_SEETING_SERVER_DEFAULT_CONTEXT_CODE);
+		String systemDesc = SystemPropertyConfig.getContextProperty(Constant.SYSTEM_SEETING_SERVER_DEFAULT_CONTEXT_NAME)
+                + "-" +
+                SystemPropertyConfig.getContextProperty(Constant.SYSTEM_SEETING_SERVER_DEFAULT_CONTEXT_CODE);
 
-		boolean isSystemRootExist = zk.exists(systemPath, true) != null;
-		if (!isSystemRootExist) {
-			zk.create(systemPath, systemDesc.getBytes(), Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-		}
-		//获取实例数量，并给出标号
-		int instanceID = zk.getChildren(systemPath, true).size();
+        System.out.println(systemPath);
+        System.out.println(systemDesc);
+
+        // TODO 获取实例数量，并给出标号
+		int instanceID = 0;
 		SystemPropertyConfig.setContextProperty(Constant.SYSTEM_SEETING_SERVER_DEFAULT_INSTANCE_KEY, 
 			SystemPropertyConfig.getContextProperty(Constant.SYSTEM_SEETING_SERVER_DEFAULT_CONTEXT_NAME)
 			+ "-i" + String.valueOf(++instanceID));
@@ -139,7 +126,8 @@ public class AppMonitor {
 		Object[] tagArgs = { status };
 		String rootDesc = SystemPropertyConfig.getContextProperty(Constant.SYSTEM_SEETING_SERVER_DEFAULT_CONTEXT_DESC);
 		rootDesc = PropertyAdapter.formatter(rootDesc, tagArgs);
-		return zk.create(systemPath + "/" + systemDesc + "-", rootDesc.getBytes(), Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL);
+        System.out.println(rootDesc);
+        return "";
 	}
 
 	/**
@@ -147,25 +135,18 @@ public class AppMonitor {
 	 * 
 	 * @Methods Name buildAppInfo
 	 * @Create In 2015年8月26日 By Jack
-	 * @param zk
-	 * @param appServerPath
 	 * @return void
 	 */
-	public void buildAppInfo(ZooKeeper zk, String appServerPath) {
+	public void buildAppInfo() {
 		ApplicationInfo ai;
-
-		Stat stat = new Stat();
 		SystemInfo si = new SystemInfo();
 		String rootDesc;
-
 		try {
-
-			// 0.判断是否当天计数，如已不是当天，重置计数器，但每个实例目前存在一个5分钟的计数延迟待处理
+			// 0. 判断是否当天计数，如已不是当天，重置计数器，但每个实例目前存在一个5分钟的计数延迟待处理
 			compareDate();
 			javaInfor.rebuildJavaInfo(sc, true);
 			
-			// 1.获取目前节点基础信息
-			rootDesc = new String(zk.getData(appServerPath, true, stat));
+			// 1. 获取目前节点基础信息
 			Object[] tagArgs = { "Active" };
 			rootDesc = SystemPropertyConfig.getContextProperty(Constant.SYSTEM_SEETING_SERVER_DEFAULT_CONTEXT_DESC);
 			rootDesc = PropertyAdapter.formatter(rootDesc, tagArgs);
@@ -176,7 +157,6 @@ public class AppMonitor {
 			si.setTotalMem(javaInfor.getMemoryInformations().getTotalMemory() / 1024 / 1024);
 			si.setFreeMem(javaInfor.getMemoryInformations().getFreeMemory() / 1024 / 1024);
 			si.setMaxMem(javaInfor.getMemoryInformations().getMaxMemory() / 1024 / 1024);
-
 			// =======================OperatingSystemMXBean============================
 			si.setOsName(javaInfor.getOS());
 			si.setSysArch(javaInfor.getArc());
@@ -259,26 +239,12 @@ public class AppMonitor {
 			rootDesc = JacksonMapperUtil.objectToJson(ai);
 
 			// 6.更新自身节点状态
-			zk.setData(appServerPath, rootDesc.getBytes(), stat.getVersion());
-
-		} catch (KeeperException e) {
-			log.error(EnvPropertyConfig.getContextProperty("env.setting.server.error.00001013"));
-			log.error("Details: " + e.getMessage());
-		} catch (InterruptedException e) {
-			log.error(EnvPropertyConfig.getContextProperty("env.setting.server.error.00001013"));
-			log.error("Details: " + e.getMessage());
-		} catch (JsonParseException e) {
-			log.error(EnvPropertyConfig.getContextProperty("env.setting.server.error.00001013"));
-			log.error("Details: " + e.getMessage());
-		} catch (JsonMappingException e) {
-			log.error(EnvPropertyConfig.getContextProperty("env.setting.server.error.00001013"));
-			log.error("Details: " + e.getMessage());
+            System.out.println(rootDesc);
 		} catch (IOException e) {
 			log.error(EnvPropertyConfig.getContextProperty("env.setting.server.error.00001013"));
 			log.error("Details: " + e.getMessage());
 		}
-
-	}
+    }
 
 	/**
 	 * 构造SQL计数信息到队列
@@ -320,10 +286,10 @@ public class AppMonitor {
 				List<CounterRequest> sqlDetails = jw.getSqlCounter().getRequests();
 				sqlInfo.setSqlDetails(sqlDetails);
 				rootDesc = JacksonMapperUtil.objectToJson(sqlInfo);
-				//发送消息到回收队列
-				KafkaConnectManager
-                        .sendMsgToTopic(SystemPropertyConfig.getContextProperty(Constant.SYSTEM_SEETING_KAFKA_RECEIVER),
-                                sqlInfo.getSysCode() + sqlInfo.getSysName(), rootDesc);
+
+                // TODO write data
+                System.out.println("sysCode: " + sqlInfo.getSysCode() + "\nsysName: " + sqlInfo
+                        .getSysName() + "\ndata: " + rootDesc);
 			}
 		}catch(IOException e){
 			log.error(EnvPropertyConfig.getContextProperty("env.setting.server.error.00001013"));
@@ -362,8 +328,9 @@ public class AppMonitor {
 				reqInfo.setErrorDetails(errDetails);
 				rootDesc = JacksonMapperUtil.objectToJson(reqInfo);
 				// 发送消息到回收队列
-				KafkaConnectManager.sendMsgToTopic(SystemPropertyConfig.getContextProperty(Constant.SYSTEM_SEETING_KAFKA_RECEIVER), reqInfo.getSysCode() + reqInfo.getSysName(), rootDesc);
-	
+
+                // TODO write data
+                System.out.println("sysCode: " + reqInfo.getSysCode() + "\nsysName: " + reqInfo.getSysName() + "\ndata: " + rootDesc);
 			}
 		}catch(IOException e){
 			log.error(EnvPropertyConfig.getContextProperty("env.setting.server.error.00001013"));
@@ -388,7 +355,6 @@ public class AppMonitor {
 				SLACountManager.init();
 			}
 		} catch (ParseException e) {
-			// TODO Auto-generated catch block
 			log.error(EnvPropertyConfig.getContextProperty("env.setting.server.error.00001015"));
 			log.error("Details: " + e.getMessage());
 		}

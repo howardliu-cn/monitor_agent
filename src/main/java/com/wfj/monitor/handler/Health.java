@@ -7,8 +7,6 @@
  */
 package com.wfj.monitor.handler;
 
-import org.apache.zookeeper.ZooKeeper;
-
 /**
  * @Class Name Heart
  * @Author Jack
@@ -51,10 +49,6 @@ public interface Health {
      * @Create In 2016年3月24日 By Jack
      */
     public void setListensePort(Integer port);
-
-    public ZooKeeper getZk();
-
-    public void setZk(ZooKeeper zk);
 
     public Thread getM();
 
