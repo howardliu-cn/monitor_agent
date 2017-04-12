@@ -176,7 +176,6 @@ public class AppMonitor {
 
             si.setSystemCpuRatio(javaInfor.getSystemCpuLoad());
             si.setCpuRatio(javaInfor.getProcessCpuLoad());
-            ;
 
             // =======================MemoryMXBean============================
             si.setHeapMemoryUsage(javaInfor.getMemoryInformations().getHeapMemoryUsage());
@@ -274,17 +273,17 @@ public class AppMonitor {
                     ips = ips.substring(0, ips.lastIndexOf("</"));
                     sqlInfo.setSysIPS(ips);
                 } else {
-                    sqlInfo.setSysIPS(address.get(0).toString());
+                    sqlInfo.setSysIPS(address.get(0));
                 }
 
                 sqlInfo.setDataBaseVersion(javaInfor.getDataBaseVersion());
                 sqlInfo.setDataSourceDetails(javaInfor.getDataSourceDetails());
-                sqlInfo.setActive_connection_count(jw.getActiveConnectionCount());
-                sqlInfo.setActive_thread_count(jw.getActiveThreadCount());
-                sqlInfo.setBuild_queue_length(jw.getBuildQueueLength());
-                sqlInfo.setRunning_build_count(jw.getRunningBuildCount());
-                sqlInfo.setTransaction_count(jw.getTransactionCount());
-                sqlInfo.setUsed_connection_count(jw.getUsedConnectionCount());
+                sqlInfo.setActive_connection_count(JdbcWrapper.getActiveConnectionCount());
+                sqlInfo.setActive_thread_count(JdbcWrapper.getActiveThreadCount());
+                sqlInfo.setBuild_queue_length(JdbcWrapper.getBuildQueueLength());
+                sqlInfo.setRunning_build_count(JdbcWrapper.getRunningBuildCount());
+                sqlInfo.setTransaction_count(JdbcWrapper.getTransactionCount());
+                sqlInfo.setUsed_connection_count(JdbcWrapper.getUsedConnectionCount());
                 sqlInfo.setUpdateDate(df.format(new Date()));
 
                 List<CounterRequest> sqlDetails = jw.getSqlCounter().getRequests();
@@ -323,7 +322,7 @@ public class AppMonitor {
                     ips = ips.substring(0, ips.lastIndexOf("</"));
                     reqInfo.setSysIPS(ips);
                 } else {
-                    reqInfo.setSysIPS(address.get(0).toString());
+                    reqInfo.setSysIPS(address.get(0));
                 }
 
                 reqInfo.setUpdateDate(df.format(new Date()));
@@ -376,7 +375,7 @@ public class AppMonitor {
      * @Create In 2015年8月26日 By Jack
      */
     private List<String> getIPsList(Integer port) {
-        List<String> res = new ArrayList<String>();
+        List<String> res = new ArrayList<>();
         try {
             String enthernet = SystemPropertyConfig.getContextProperty(Constant.SYSTEM_SEETING_SERVER_DEFALUT_ETHERNET);
             // NetworkInterface.getByName("en0") == null ?
@@ -386,12 +385,12 @@ public class AppMonitor {
                     .getByName(enthernet) : NetworkInterface
                     .getByName("en0");
             if (netInterfaces != null) {
-                InetAddress ip = null;
+                InetAddress ip;
                 Enumeration nii = netInterfaces.getInetAddresses();
                 if (nii.hasMoreElements()) {
                     while (nii.hasMoreElements()) {
                         ip = (InetAddress) nii.nextElement();
-                        if (ip.getHostAddress().indexOf(":") == -1) {
+                        if (!ip.getHostAddress().contains(":")) {
                             res.add(ip.getHostAddress() + ":" + String.valueOf(port.intValue()));
                         }
                     }

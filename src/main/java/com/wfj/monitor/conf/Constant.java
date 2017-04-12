@@ -62,15 +62,15 @@ public class Constant {
 
     public static final String SYSTEM_SEETING_SERVER_DEFALUT_ETHERNET = "system.setting.interface.name";
 
-    public static final Integer SYSTEM_SEETING_PROCESS_RESULT_CODE_STOP = new Integer(0);
+    public static final Integer SYSTEM_SEETING_PROCESS_RESULT_CODE_STOP = 0;
 
-    public static final Integer SYSTEM_SEETING_PROCESS_RESULT_CODE_EXIT = new Integer(-1);
+    public static final Integer SYSTEM_SEETING_PROCESS_RESULT_CODE_EXIT = -1;
 
-    public static final Integer SYSTEM_SEETING_PROCESS_RESULT_CODE_LOSS = new Integer(-4);
+    public static final Integer SYSTEM_SEETING_PROCESS_RESULT_CODE_LOSS = -4;
 
-    public static final Integer SYSTEM_SEETING_PROCESS_RESULT_CODE_NODEEXISTS = new Integer(-110);
+    public static final Integer SYSTEM_SEETING_PROCESS_RESULT_CODE_NODEEXISTS = -110;
 
-    public static final Integer SYSTEM_SEETING_PROCESS_RESULT_CODE_SESSIONEXPIRED = new Integer(-112);
+    public static final Integer SYSTEM_SEETING_PROCESS_RESULT_CODE_SESSIONEXPIRED = -112;
 
     public static final String SYSTEM_SEETING_MONITOR_SETTING_DEFAULT_IP = "127.0.0.1";
 

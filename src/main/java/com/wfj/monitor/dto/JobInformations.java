@@ -105,10 +105,10 @@ public class JobInformations implements Serializable {
         if (!QUARTZ_AVAILABLE) {
             return Collections.emptyList();
         }
-        final List<JobInformations> result = new ArrayList<JobInformations>();
+        final List<JobInformations> result = new ArrayList<>();
         try {
             for (final Scheduler scheduler : getAllSchedulers()) {
-                final Map<String, JobExecutionContext> currentlyExecutingJobsByFullName = new LinkedHashMap<String, JobExecutionContext>();
+                final Map<String, JobExecutionContext> currentlyExecutingJobsByFullName = new LinkedHashMap<>();
                 for (final JobExecutionContext currentlyExecutingJob : (List<JobExecutionContext>) scheduler
                         .getCurrentlyExecutingJobs()) {
                     final JobDetail jobDetail = QuartzAdapter.getSingleton()
@@ -133,7 +133,7 @@ public class JobInformations implements Serializable {
 
     @SuppressWarnings("unchecked")
     public static List<Scheduler> getAllSchedulers() {
-        return new ArrayList<Scheduler>(SchedulerRepository.getInstance().lookupAll());
+        return new ArrayList<>(SchedulerRepository.getInstance().lookupAll());
     }
 
     static List<JobDetail> getAllJobsOfScheduler(Scheduler scheduler) {

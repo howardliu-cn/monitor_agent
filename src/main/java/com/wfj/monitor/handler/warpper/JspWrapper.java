@@ -29,6 +29,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Objects;
 
 /**
  * Wrapping de l'interface javax.servlet.RequestDispatcher pour avoir les temps moyens de rendu
@@ -144,7 +145,7 @@ final class JspWrapper implements InvocationHandler {
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         final String methodName = method.getName();
         // != for perf (strings interned: != is ok)
-        if ("include" != methodName && "forward" != methodName) { // NOPMD
+        if (!Objects.equals("include", methodName) && !Objects.equals("forward", methodName)) { // NOPMD
             return method.invoke(requestDispatcher, args);
         }
         boolean systemError = false;

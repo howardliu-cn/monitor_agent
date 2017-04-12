@@ -60,7 +60,7 @@ public final class JdbcWrapper {
     public static final AtomicInteger ACTIVE_THREAD_COUNT = new AtomicInteger();
     public static final AtomicInteger RUNNING_BUILD_COUNT = new AtomicInteger();
     public static final AtomicInteger BUILD_QUEUE_LENGTH = new AtomicInteger();
-    public static final Map<Integer, ConnectionInformations> USED_CONNECTION_INFORMATIONS = new ConcurrentHashMap<Integer, ConnectionInformations>();
+    public static final Map<Integer, ConnectionInformations> USED_CONNECTION_INFORMATIONS = new ConcurrentHashMap<>();
 
     private static final int MAX_USED_CONNECTION_INFORMATIONS = 65535;
 
@@ -323,7 +323,7 @@ public final class JdbcWrapper {
     }
 
     public static List<ConnectionInformations> getConnectionInformationsList() {
-        final List<ConnectionInformations> result = new ArrayList<ConnectionInformations>(
+        final List<ConnectionInformations> result = new ArrayList<>(
                 USED_CONNECTION_INFORMATIONS.values());
         Collections.sort(result, new ConnectionInformationsComparator());
         return Collections.unmodifiableList(result);

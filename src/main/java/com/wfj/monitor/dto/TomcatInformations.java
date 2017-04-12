@@ -101,9 +101,9 @@ public final class TomcatInformations implements Serializable {
             Set<ObjectName> names = server.getAttribute(new ObjectName("*:type=Connector,*"), (QueryExp) null);
             Iterator<ObjectName> iterator = names.iterator();
 
-            ObjectName name = null;
+            ObjectName name;
             while (iterator.hasNext()) {
-                name = (ObjectName) iterator.next();
+                name = iterator.next();
 
                 String protocol = server.getAttribute(name, "protocol").toString();
                 String scheme = server.getAttribute(name, "scheme").toString();
@@ -139,7 +139,7 @@ public final class TomcatInformations implements Serializable {
                 }
             }
             final MBeans mBeans = new MBeans();
-            final List<TomcatInformations> tomcatInformationsList = new ArrayList<TomcatInformations>(
+            final List<TomcatInformations> tomcatInformationsList = new ArrayList<>(
                     THREAD_POOLS.size());
             // rq: le processor correspondant au threadPool peut se retrouver selon
             // threadPool.getKeyProperty("name").equals(globalRequestProcessor.getKeyProperty("name"))
@@ -213,7 +213,7 @@ public final class TomcatInformations implements Serializable {
     }
 
     /**
-     * @Return the String httpPort
+     * @return the String httpPort
      */
     public String getHttpPort() {
         return httpPort;

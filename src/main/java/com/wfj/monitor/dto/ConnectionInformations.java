@@ -68,7 +68,7 @@ public class ConnectionInformations implements Serializable {
         if (openingStackTrace == null) {
             return Collections.emptyList();
         }
-        final List<StackTraceElement> stackTrace = new ArrayList<StackTraceElement>(Arrays.asList(openingStackTrace));
+        final List<StackTraceElement> stackTrace = new ArrayList<>(Arrays.asList(openingStackTrace));
 
         stackTrace.remove(0);
         while (stackTrace.get(0).getClassName().startsWith(OWN_PACKAGE)) {

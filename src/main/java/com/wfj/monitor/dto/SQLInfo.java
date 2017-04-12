@@ -45,11 +45,11 @@ public class SQLInfo {
         this.dataSourceDetails = "";
         this.active_connection_count = 0;
         this.used_connection_count = 0;
-        this.transaction_count = Long.valueOf(0);
+        this.transaction_count = (long) 0;
         this.active_thread_count = 0;
         this.running_build_count = 0;
         this.build_queue_length = 0;
-        this.sqlDetails = new ArrayList<CounterRequest>();
+        this.sqlDetails = new ArrayList<>();
     }
 
     /**

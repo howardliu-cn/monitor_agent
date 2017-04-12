@@ -103,10 +103,7 @@ class FilterServletOutputStream extends ServletOutputStream {
 
     @Override
     public boolean isReady() {
-        if (servletOutputStream != null) {
-            return servletOutputStream.isReady();
-        }
-        return true;
+        return servletOutputStream == null || servletOutputStream.isReady();
     }
 
     @Override

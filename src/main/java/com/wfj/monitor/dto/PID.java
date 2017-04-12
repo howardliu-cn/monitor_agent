@@ -94,9 +94,7 @@ public final class PID {
                     tempFile.deleteOnExit();
                 }
             }
-        } catch (final InterruptedException e) {
-            pid = e.toString();
-        } catch (final IOException e) {
+        } catch (final InterruptedException | IOException e) {
             pid = e.toString();
         }
         return pid;

@@ -39,8 +39,8 @@ import java.util.*;
  */
 public final class JdbcWrapperHelper {
     private static final String MAX_ACTIVE_PROPERTY_NAME = "maxActive";
-    private static final Map<String, DataSource> SPRING_DATASOURCES = new LinkedHashMap<String, DataSource>();
-    private static final Map<String, DataSource> JNDI_DATASOURCES_BACKUP = new LinkedHashMap<String, DataSource>();
+    private static final Map<String, DataSource> SPRING_DATASOURCES = new LinkedHashMap<>();
+    private static final Map<String, DataSource> JNDI_DATASOURCES_BACKUP = new LinkedHashMap<>();
     private static final BasicDataSourcesProperties TOMCAT_BASIC_DATASOURCES_PROPERTIES = new BasicDataSourcesProperties();
     private static final BasicDataSourcesProperties DBCP_BASIC_DATASOURCES_PROPERTIES = new BasicDataSourcesProperties();
     private static final BasicDataSourcesProperties TOMCAT_JDBC_DATASOURCES_PROPERTIES = new BasicDataSourcesProperties();
@@ -56,7 +56,7 @@ public final class JdbcWrapperHelper {
      * @author Emeric Vernat
      */
     private static class BasicDataSourcesProperties {
-        private final Map<String, Map<String, Object>> properties = new LinkedHashMap<String, Map<String, Object>>();
+        private final Map<String, Map<String, Object>> properties = new LinkedHashMap<>();
 
         BasicDataSourcesProperties() {
             super();
@@ -79,7 +79,7 @@ public final class JdbcWrapperHelper {
         }
 
         Map<String, Map<String, Object>> getDataSourcesProperties() {
-            final Map<String, Map<String, Object>> result = new LinkedHashMap<String, Map<String, Object>>();
+            final Map<String, Map<String, Object>> result = new LinkedHashMap<>();
             for (final Map.Entry<String, Map<String, Object>> entry : properties.entrySet()) {
                 result.put(entry.getKey(), Collections.unmodifiableMap(entry.getValue()));
             }
@@ -89,7 +89,7 @@ public final class JdbcWrapperHelper {
         void put(String dataSourceName, String key, Object value) {
             Map<String, Object> dataSourceProperties = properties.get(dataSourceName);
             if (dataSourceProperties == null) {
-                dataSourceProperties = new LinkedHashMap<String, Object>();
+                dataSourceProperties = new LinkedHashMap<>();
                 properties.put(dataSourceName, dataSourceProperties);
             }
             dataSourceProperties.put(key, value);
@@ -134,16 +134,16 @@ public final class JdbcWrapperHelper {
     public static Map<String, DataSource> getJndiAndSpringDataSources() throws NamingException {
         Map<String, DataSource> dataSources;
         try {
-            dataSources = new LinkedHashMap<String, DataSource>(getJndiDataSources());
+            dataSources = new LinkedHashMap<>(getJndiDataSources());
         } catch (final NoInitialContextException e) {
-            dataSources = new LinkedHashMap<String, DataSource>();
+            dataSources = new LinkedHashMap<>();
         }
         dataSources.putAll(SPRING_DATASOURCES);
         return dataSources;
     }
 
     public static Map<String, DataSource> getJndiDataSources() throws NamingException {
-        final Map<String, DataSource> dataSources = new LinkedHashMap<String, DataSource>(2);
+        final Map<String, DataSource> dataSources = new LinkedHashMap<>(2);
         final String datasourcesParameter = Parameters.getParameter(Parameter.DATASOURCES);
         if (datasourcesParameter == null) {
             dataSources.putAll(getJndiDataSourcesAt("java:comp/env/jdbc"));
@@ -164,7 +164,7 @@ public final class JdbcWrapperHelper {
 
     private static Map<String, DataSource> getJndiDataSourcesAt(String jndiPrefix) throws NamingException {
         final InitialContext initialContext = new InitialContext();
-        final Map<String, DataSource> dataSources = new LinkedHashMap<String, DataSource>(2);
+        final Map<String, DataSource> dataSources = new LinkedHashMap<>(2);
         try {
             for (final NameClassPair nameClassPair : Collections.list(initialContext.list(jndiPrefix))) {
                 final String jndiName;
@@ -509,7 +509,7 @@ public final class JdbcWrapperHelper {
 
     @SuppressWarnings("unchecked")
     public static <T> T createProxy(T object, InvocationHandler invocationHandler, List<Class<?>> interfaces) {
-        final Class<? extends Object> objectClass = object.getClass();
+        final Class<?> objectClass = object.getClass();
         Constructor<?> constructor = PROXY_CACHE.get(objectClass);
 
         if (constructor == null) {
@@ -520,17 +520,17 @@ public final class JdbcWrapperHelper {
             }
         }
         try {
-            return (T) constructor.newInstance(new Object[]{invocationHandler});
+            return (T) constructor.newInstance(invocationHandler);
         } catch (final Exception e) {
             throw new IllegalStateException(e);
         }
     }
 
-    private static Constructor<?> getProxyConstructor(Class<? extends Object> objectClass, Class<?>[] interfacesArray) {
+    private static Constructor<?> getProxyConstructor(Class<?> objectClass, Class<?>[] interfacesArray) {
         final ClassLoader classLoader = objectClass.getClassLoader(); // NOPMD
         try {
             final Constructor<?> constructor = Proxy
-                    .getProxyClass(classLoader, interfacesArray).getConstructor(new Class[]{InvocationHandler.class});
+                    .getProxyClass(classLoader, interfacesArray).getConstructor(InvocationHandler.class);
             constructor.setAccessible(true);
             return constructor;
         } catch (final NoSuchMethodException e) {
@@ -541,7 +541,7 @@ public final class JdbcWrapperHelper {
     private static Class<?>[] getObjectInterfaces(Class<?> objectClass, List<Class<?>> interfaces) {
         final List<Class<?>> myInterfaces;
         if (interfaces == null) {
-            myInterfaces = new ArrayList<Class<?>>(Arrays.asList(objectClass.getInterfaces()));
+            myInterfaces = new ArrayList<>(Arrays.asList(objectClass.getInterfaces()));
             Class<?> classe = objectClass.getSuperclass();
             while (classe != null) {
                 final Class<?>[] classInterfaces = classe.getInterfaces();

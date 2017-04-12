@@ -116,11 +116,8 @@ public final class Parameters {
         if (!directory.mkdirs() && !directory.exists()) {
             throw new IOException("WFJ-Netty-Monitor directory can't be created: " + directory.getPath());
         }
-        final FileOutputStream output = new FileOutputStream(collectorApplicationsFile);
-        try {
+        try (FileOutputStream output = new FileOutputStream(collectorApplicationsFile)) {
             properties.store(output, "urls of the applications to monitor");
-        } finally {
-            output.close();
         }
     }
 

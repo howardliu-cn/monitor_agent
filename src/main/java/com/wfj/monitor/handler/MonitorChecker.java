@@ -40,8 +40,6 @@ public class MonitorChecker implements Health {
 
     private Boolean isDebug;
 
-    private static String ZK_MONITOR_HEARLTH_THREAD_NAME = "netty-wfj-server-monitor-hearth-thread";
-
     private AppMonitor appMonitor;
 
 
@@ -166,8 +164,9 @@ public class MonitorChecker implements Health {
      * @Create In 2015年8月26日 By Jack
      */
     private void hearthCheck(final Long splitTime) {
-        isMonitorStop = new Boolean(false);
+        isMonitorStop = false;
 
+        String ZK_MONITOR_HEARLTH_THREAD_NAME = "netty-wfj-server-monitor-hearth-thread";
         this.m = new Thread(new Runnable() {
             public void run() {
                 try {
@@ -188,7 +187,7 @@ public class MonitorChecker implements Health {
                     Thread.currentThread().interrupt();
                 }
             }
-        }, MonitorChecker.ZK_MONITOR_HEARLTH_THREAD_NAME);
+        }, ZK_MONITOR_HEARLTH_THREAD_NAME);
         m.start();
     }
 
@@ -248,14 +247,9 @@ public class MonitorChecker implements Health {
             return;
         }
         // 1.停止实例信息获取模块
-        if (this.m != null) {
-            this.isMonitorStop = true;
-        } else {
-            this.isMonitorStop = false;
-        }
+        this.isMonitorStop = this.m != null;
         // 2.停止zk 链接监控线程
         // TODO stop
-
     }
 
     @Override

@@ -77,14 +77,12 @@ public class CounterStorage {
         try {
             final CounterResponseStream counterOutput = new CounterResponseStream(
                     new GZIPOutputStream(new BufferedOutputStream(out)));
-            final ObjectOutputStream output = new ObjectOutputStream(counterOutput);
-            try {
+            try (ObjectOutputStream output = new ObjectOutputStream(counterOutput)) {
                 output.writeObject(counter);
-            } finally {
-                // ce close libère les ressources du ObjectOutputStream et du
-                // GZIPOutputStream
-                output.close();
             }
+            // ce close libère les ressources du ObjectOutputStream et du
+            // GZIPOutputStream
+
             // retourne la taille sérialisée non compressée,
             // qui est une estimation pessimiste de l'occupation mémoire
             return counterOutput.getDataLength();
@@ -105,8 +103,7 @@ public class CounterStorage {
         }
         final File file = getFile();
         if (file.exists()) {
-            final FileInputStream in = new FileInputStream(file);
-            try {
+            try (FileInputStream in = new FileInputStream(file)) {
                 final ObjectInputStream input = TransportFormat
                         .createObjectInputStream(new GZIPInputStream(new BufferedInputStream(in)));
                 try {
@@ -119,8 +116,6 @@ public class CounterStorage {
                 }
             } catch (final ClassNotFoundException e) {
                 throw new IOException(e.getMessage(), e);
-            } finally {
-                in.close();
             }
         }
         // ou on retourne null si le fichier n'existe pas

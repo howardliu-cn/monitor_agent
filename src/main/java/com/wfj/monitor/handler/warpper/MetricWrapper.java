@@ -73,9 +73,7 @@ public class MetricWrapper {
      * @Create In 2017年1月16日 By Jack void
      */
     private void clearnMetricRegistry() {
-        Iterator<String> keys = slam.registry.getNames().iterator();
-        while (keys.hasNext()) {
-            String item = keys.next();
+        for (String item : slam.registry.getNames()) {
             slam.registry.remove(item);
         }
     }

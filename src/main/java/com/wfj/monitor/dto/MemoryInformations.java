@@ -49,7 +49,7 @@ public class MemoryInformations implements Serializable {
     private static final long serialVersionUID = 3281861236369720876L;
     private static final String NEXT = ",\n";
     private static final String MO = " Mo";
-    private static final Set<ObjectName> NIO_BUFFER_POOLS = new HashSet<ObjectName>();
+    private static final Set<ObjectName> NIO_BUFFER_POOLS = new HashSet<>();
 
     static {
         try {
@@ -146,7 +146,7 @@ public class MemoryInformations implements Serializable {
 
     private List<GCInfo> buildGCInfo() {
         List<GarbageCollectorMXBean> gcmList = ManagementFactory.getGarbageCollectorMXBeans();
-        List<GCInfo> gcInfos = new ArrayList<GCInfo>();
+        List<GCInfo> gcInfos = new ArrayList<>();
         for (GarbageCollectorMXBean gcm : gcmList) {
             GCInfo gcInfo = new GCInfo();
             gcInfo.setName(gcm.getName());
@@ -162,7 +162,7 @@ public class MemoryInformations implements Serializable {
     private List<MemPoolInfo> buildMemPoolInfos() {
 
         List<MemoryPoolMXBean> mpmList = ManagementFactory.getMemoryPoolMXBeans();
-        List<MemPoolInfo> mpisList = new ArrayList<MemPoolInfo>();
+        List<MemPoolInfo> mpisList = new ArrayList<>();
         for (MemoryPoolMXBean mpm : mpmList) {
             MemPoolInfo mpiInfo = new MemPoolInfo();
             MemoryUsage mu = new MemoryUsage();
@@ -358,14 +358,14 @@ public class MemoryInformations implements Serializable {
     }
 
     /**
-     * @Return the long totalMemory
+     * @return the long totalMemory
      */
     public long getTotalMemory() {
         return totalMemory;
     }
 
     /**
-     * @Return the long freeMemory
+     * @return the long freeMemory
      */
     public long getFreeMemory() {
         return freeMemory;
@@ -373,35 +373,35 @@ public class MemoryInformations implements Serializable {
 
 
     /**
-     * @Return the long totalSwapSpaceSize
+     * @return the long totalSwapSpaceSize
      */
     public long getTotalSwapSpaceSize() {
         return totalSwapSpaceSize;
     }
 
     /**
-     * @Return the long freeSwapSpaceSize
+     * @return the long freeSwapSpaceSize
      */
     public long getFreeSwapSpaceSize() {
         return freeSwapSpaceSize;
     }
 
     /**
-     * @Return the long freePhysicalMemorySize
+     * @return the long freePhysicalMemorySize
      */
     public long getFreePhysicalMemorySize() {
         return freePhysicalMemorySize;
     }
 
     /**
-     * @Return the long totalPhysicalMemorySize
+     * @return the long totalPhysicalMemorySize
      */
     public long getTotalPhysicalMemorySize() {
         return totalPhysicalMemorySize;
     }
 
     /**
-     * @Return the long committedVirtualMemorySize
+     * @return the long committedVirtualMemorySize
      */
     public long getCommittedVirtualMemorySize() {
         return committedVirtualMemorySize;
@@ -409,28 +409,28 @@ public class MemoryInformations implements Serializable {
 
 
     /**
-     * @Return the MemoryUsage heapMemoryUsage
+     * @return the MemoryUsage heapMemoryUsage
      */
     public MemoryUsage getHeapMemoryUsage() {
         return heapMemoryUsage;
     }
 
     /**
-     * @Return the MemoryUsage nonHeapMemoryUsage
+     * @return the MemoryUsage nonHeapMemoryUsage
      */
     public MemoryUsage getNonHeapMemoryUsage() {
         return nonHeapMemoryUsage;
     }
 
     /**
-     * @Return the List<MemPoolInfo> memPoolInfos
+     * @return the List<MemPoolInfo> memPoolInfos
      */
     public List<MemPoolInfo> getMemPoolInfos() {
         return memPoolInfos;
     }
 
     /**
-     * @Return the List<GCInfo> gcInfos
+     * @return the List<GCInfo> gcInfos
      */
     public List<GCInfo> getGcInfos() {
         return gcInfos;

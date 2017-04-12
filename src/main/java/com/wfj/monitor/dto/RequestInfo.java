@@ -42,8 +42,8 @@ public class RequestInfo {
         this.sysName = "";
         this.sysIPS = "";
         this.updateDate = df.format(new Date());
-        this.requestDetails = new ArrayList<CounterRequest>();
-        this.errorDetails = new ArrayList<CounterRequest>();
+        this.requestDetails = new ArrayList<>();
+        this.errorDetails = new ArrayList<>();
     }
 
     /**

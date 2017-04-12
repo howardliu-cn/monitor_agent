@@ -254,7 +254,7 @@ public class Counter implements Cloneable, Serializable { // NOPMD
         this.childCounterName = childCounterName;
         this.contextThreadLocal = contextThreadLocal;
         if (errorCounter) {
-            this.errors = new LinkedList<CounterError>();
+            this.errors = new LinkedList<>();
         } else {
             this.errors = null;
         }
@@ -514,7 +514,6 @@ public class Counter implements Cloneable, Serializable { // NOPMD
                 // du contexte
                 if (context.getParentCounter() == this) {
                     request.addChildHits(context);
-                    ;
                 }
                 request.addChildRequests(context.getChildRequestsExecutionsByRequestId());
             }
@@ -813,7 +812,7 @@ public class Counter implements Cloneable, Serializable { // NOPMD
         // Rq : l'Iterator sur ConcurrentHashMap.values() est garanti ne pas
         // lancer ConcurrentModificationException
         // même s'il y a des ajouts concurrents
-        final List<CounterRequest> result = new ArrayList<CounterRequest>(requests.size());
+        final List<CounterRequest> result = new ArrayList<>(requests.size());
         for (final CounterRequest request : requests.values()) {
             // on synchronize sur request en cas d'ajout en parallèle d'un hit
             // sur cette request
@@ -857,7 +856,7 @@ public class Counter implements Cloneable, Serializable { // NOPMD
      * contextes ne sont pas actuellement clonés dans cette méthode.
      */
     public List<CounterRequestContext> getOrderedRootCurrentContexts() {
-        final List<CounterRequestContext> contextList = new ArrayList<CounterRequestContext>(
+        final List<CounterRequestContext> contextList = new ArrayList<>(
                 rootCurrentContextsByThreadId.size());
         for (final CounterRequestContext rootCurrentContext : rootCurrentContextsByThreadId.values()) {
             contextList.add(rootCurrentContext.clone());
@@ -879,7 +878,7 @@ public class Counter implements Cloneable, Serializable { // NOPMD
             return Collections.emptyList();
         }
         synchronized (errors) {
-            return new ArrayList<CounterError>(errors);
+            return new ArrayList<>(errors);
         }
     }
 

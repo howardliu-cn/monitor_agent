@@ -135,7 +135,7 @@ public class QuartzAdapter {
     public void removeGlobalJobListener() throws SchedulerException {
         for (final Scheduler scheduler : JobInformations.getAllSchedulers()) {
             final List<JobListener> globalJobListeners = scheduler.getGlobalJobListeners();
-            for (final JobListener jobListener : new ArrayList<JobListener>(globalJobListeners)) {
+            for (final JobListener jobListener : new ArrayList<>(globalJobListeners)) {
                 if (jobListener instanceof JobGlobalListener) {
                     try {
                         scheduler.removeGlobalJobListener(jobListener);
@@ -156,7 +156,7 @@ public class QuartzAdapter {
     }
 
     public List<JobDetail> getAllJobsOfScheduler(Scheduler scheduler) throws SchedulerException {
-        final List<JobDetail> result = new ArrayList<JobDetail>();
+        final List<JobDetail> result = new ArrayList<>();
         for (final String jobGroupName : scheduler.getJobGroupNames()) {
             for (final String jobName : scheduler.getJobNames(jobGroupName)) {
                 final JobDetail jobDetail;

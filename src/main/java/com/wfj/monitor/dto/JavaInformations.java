@@ -131,7 +131,6 @@ public class JavaInformations implements Serializable {
     private boolean pomXmlExists = localPomXmlExists;
 
     private static JavaInformations JavaInfo = null;
-    ;
 
     public static final class ThreadInformationsComparator implements Comparator<ThreadInformations>, Serializable {
         private static final long serialVersionUID = 1L;
@@ -420,7 +419,7 @@ public class JavaInformations implements Serializable {
             // systemCpuLoad n'existe qu'à partir du jdk 1.7
             return MemoryInformations.getDoubleFromOperatingSystem(operatingSystem, "getSystemCpuLoad") * 100;
         } else {
-            if ("windows".indexOf(buildOS()) >= 0) {
+            if (buildOS().contains("windows")) {
                 return getCpuRatioForWindows();
             } else {
                 return getCpuRateForLinux();
@@ -429,7 +428,7 @@ public class JavaInformations implements Serializable {
     }
 
     private double buildProcessCpuLoad() {
-        if ("windows".indexOf(buildOS()) >= 0) {
+        if (buildOS().contains("windows")) {
             return getCpuRatioForWindowsByPID();
         } else {
             return getCupRateForLinuxByPID();
@@ -478,7 +477,7 @@ public class JavaInformations implements Serializable {
         InputStream is = null;
         InputStreamReader isr = null;
         BufferedReader brStat = null;
-        Double usage = new Double(0);
+        Double usage = (double) 0;
         Process process;
         try {
             // Process process = Runtime.getRuntime().exec("top -n 1 -p " +
@@ -507,7 +506,7 @@ public class JavaInformations implements Serializable {
             while (!line.contains(PID.getPID())) {
                 line = brStat.readLine();
             }
-            if (line != null && !line.equalsIgnoreCase("")) {
+            if (!line.equalsIgnoreCase("")) {
                 StringTokenizer st = new StringTokenizer(line);
                 int count = 0;
                 String value = "";
@@ -541,7 +540,7 @@ public class JavaInformations implements Serializable {
         InputStream is = null;
         InputStreamReader isr = null;
         BufferedReader brStat = null;
-        Double usage = new Double(0);
+        Double usage = (double) 0;
         try {
             Process process = Runtime.getRuntime().exec("top -n 1");
             is = process.getInputStream();
@@ -550,13 +549,13 @@ public class JavaInformations implements Serializable {
 
             String line = brStat.readLine();
             if (line != null) {
-                while (line.toLowerCase().indexOf("cpu") < 0) {
+                while (!line.toLowerCase().contains("cpu")) {
                     line = brStat.readLine();
                 }
                 line = line.substring(line.indexOf(":") + 1);
                 String useAvg[] = line.split(",");
                 for (String item : useAvg) {
-                    if (item.toLowerCase().indexOf("id") >= 0) {
+                    if (item.toLowerCase().contains("id")) {
                         usage = new Double(item.substring(0, item.indexOf("%")));
                         usage = 100 - usage;
                         break;
@@ -611,7 +610,7 @@ public class JavaInformations implements Serializable {
             if (c0 != null && c1 != null) {
                 double idletime = c1[0] - c0[0];
                 double busytime = c1[1] - c0[1];
-                return Double.valueOf(PERCENT * (busytime) / (busytime + idletime)).doubleValue();
+                return PERCENT * (busytime) / (busytime + idletime);
             } else {
                 return 0;
             }
@@ -656,25 +655,25 @@ public class JavaInformations implements Serializable {
                 // ThreadCount,UserModeTime,WriteOperation
                 String caption = line.substring(capidx, cmdidx - 1).trim();
                 String cmd = line.substring(cmdidx, kmtidx - 1).trim();
-                if (cmd.indexOf("wmic.exe") >= 0) {
+                if (cmd.contains("wmic.exe")) {
                     continue;
                 }
                 String s1 = line.substring(kmtidx, rocidx - 1).trim();
                 String s2 = line.substring(umtidx, wocidx - 1).trim();
                 if (caption.equals("System Idle Process") || caption.equals("System")) {
                     if (s1.length() > 0) {
-                        idletime += Long.valueOf(s1).longValue();
+                        idletime += Long.valueOf(s1);
                     }
                     if (s2.length() > 0) {
-                        idletime += Long.valueOf(s2).longValue();
+                        idletime += Long.valueOf(s2);
                     }
                     continue;
                 }
                 if (s1.length() > 0) {
-                    kneltime += Long.valueOf(s1).longValue();
+                    kneltime += Long.valueOf(s1);
                 }
                 if (s2.length() > 0) {
-                    usertime += Long.valueOf(s2).longValue();
+                    usertime += Long.valueOf(s2);
                 }
             }
             retn[0] = idletime;
@@ -723,7 +722,7 @@ public class JavaInformations implements Serializable {
     private static List<ThreadInformations> buildThreadInformationsList() {
         final ThreadMXBean threadBean = ManagementFactory.getThreadMXBean();
         final Map<Thread, StackTraceElement[]> stackTraces = Thread.getAllStackTraces();
-        final List<Thread> threads = new ArrayList<Thread>(stackTraces.keySet());
+        final List<Thread> threads = new ArrayList<>(stackTraces.keySet());
 
         // 如果 "1.6.0_01".compareTo(Parameters.JAVA_VERSION) > 0;
         // 我们恢复线程的堆栈跟踪没有绕过漏洞6434648
@@ -738,12 +737,12 @@ public class JavaInformations implements Serializable {
 
         final boolean cpuTimeEnabled = threadBean.isThreadCpuTimeSupported() && threadBean.isThreadCpuTimeEnabled();
         final long[] deadlockedThreads = getDeadlockedThreads(threadBean);
-        final List<ThreadInformations> threadInfosList = new ArrayList<ThreadInformations>(threads.size());
+        final List<ThreadInformations> threadInfosList = new ArrayList<>(threads.size());
         // 检索这里，因为可能有超过20,000的线程
         final String hostAddress = Parameters.getHostAddress();
         for (final Thread thread : threads) {
             final StackTraceElement[] stackTraceElements = stackTraces.get(thread);
-            final List<StackTraceElement> stackTraceElementList = stackTraceElements == null ? null : new ArrayList<StackTraceElement>(
+            final List<StackTraceElement> stackTraceElementList = stackTraceElements == null ? null : new ArrayList<>(
                     Arrays.asList(stackTraceElements));
             final long cpuTimeMillis;
             final long userTimeMillis;
@@ -819,22 +818,20 @@ public class JavaInformations implements Serializable {
             for (final Map.Entry<String, DataSource> entry : dataSources.entrySet()) {
                 final String name = entry.getKey();
                 final DataSource dataSource = entry.getValue();
-                final Connection connection = dataSource.getConnection();
                 // on ne doit pas changer autoCommit pour la connection d'une
                 // DataSource
                 // (ou alors il faudrait remettre l'autoCommit après, issue 233)
                 // connection.setAutoCommit(false);
-                try {
+                try (Connection connection = dataSource.getConnection()) {
                     if (result.length() > 0) {
                         result.append("\n\n");
                     }
                     result.append(name).append(":\n");
                     appendDataBaseVersion(result, connection);
-                } finally {
-                    // rollback inutile ici car on ne fait que lire les
-                    // meta-data (+ cf issue 38)
-                    connection.close();
                 }
+                // rollback inutile ici car on ne fait que lire les
+                // meta-data (+ cf issue 38)
+
             }
         } catch (final Exception e) {
             result.append(e.toString());
@@ -909,7 +906,7 @@ public class JavaInformations implements Serializable {
         if (dependencies == null || dependencies.isEmpty()) {
             return Collections.emptyList();
         }
-        final List<String> result = new ArrayList<String>(dependencies.size());
+        final List<String> result = new ArrayList<>(dependencies.size());
         for (final String dependency : dependencies) {
             result.add(dependency.substring(directory.length()));
         }
@@ -1084,14 +1081,14 @@ public class JavaInformations implements Serializable {
 
     public List<ThreadInformations> getThreadInformationsList() {
         // on trie sur demande (si affichage)
-        final List<ThreadInformations> result = new ArrayList<ThreadInformations>(threadInformationsList);
+        final List<ThreadInformations> result = new ArrayList<>(threadInformationsList);
         Collections.sort(result, new ThreadInformationsComparator());
         return Collections.unmodifiableList(result);
     }
 
     public List<JobInformations> getJobInformationsList() {
         // on trie sur demande (si affichage)
-        final List<JobInformations> result = new ArrayList<JobInformations>(jobInformationsList);
+        final List<JobInformations> result = new ArrayList<>(jobInformationsList);
         Collections.sort(result, new JobInformationsComparator());
         return Collections.unmodifiableList(result);
     }
@@ -1150,21 +1147,21 @@ public class JavaInformations implements Serializable {
 
 
     /**
-     * @Return the double processCpuLoad
+     * @return the double processCpuLoad
      */
     public double getProcessCpuLoad() {
         return processCpuLoad;
     }
 
     /**
-     * @Return the String sysVersion
+     * @return the String sysVersion
      */
     public String getSysVersion() {
         return sysVersion;
     }
 
     /**
-     * @Return the String arc
+     * @return the String arc
      */
     public String getArc() {
         return arc;
@@ -1172,14 +1169,14 @@ public class JavaInformations implements Serializable {
 
 
     /**
-     * @Return the int daemonThreadCount
+     * @return the int daemonThreadCount
      */
     public int getDaemonThreadCount() {
         return daemonThreadCount;
     }
 
     /**
-     * @Return the long currentThreadCpuTime
+     * @return the long currentThreadCpuTime
      */
     public long getCurrentThreadCpuTime() {
         return currentThreadCpuTime;
@@ -1187,7 +1184,7 @@ public class JavaInformations implements Serializable {
 
 
     /**
-     * @Return the long currentThreadUserTime
+     * @return the long currentThreadUserTime
      */
     public long getCurrentThreadUserTime() {
         return currentThreadUserTime;
@@ -1195,42 +1192,42 @@ public class JavaInformations implements Serializable {
 
 
     /**
-     * @Return the String vmName
+     * @return the String vmName
      */
     public String getVmName() {
         return vmName;
     }
 
     /**
-     * @Return the String vmVendor
+     * @return the String vmVendor
      */
     public String getVmVendor() {
         return vmVendor;
     }
 
     /**
-     * @Return the String vmVersion
+     * @return the String vmVersion
      */
     public String getVmVersion() {
         return vmVersion;
     }
 
     /**
-     * @Return the String classPath
+     * @return the String classPath
      */
     public String getClassPath() {
         return classPath;
     }
 
     /**
-     * @Return the String libraryPath
+     * @return the String libraryPath
      */
     public String getLibraryPath() {
         return libraryPath;
     }
 
     /**
-     * @Return the String compliationName
+     * @return the String compliationName
      */
     public String getCompliationName() {
         return compliationName;
@@ -1238,119 +1235,119 @@ public class JavaInformations implements Serializable {
 
 
     /**
-     * @Return the Logger log
+     * @return the Logger log
      */
     public static Logger getLog() {
         return log;
     }
 
     /**
-     * @Return the int CPUTIME
+     * @return the int CPUTIME
      */
     public static int getCputime() {
         return CPUTIME;
     }
 
     /**
-     * @Return the int PERCENT
+     * @return the int PERCENT
      */
     public static int getPercent() {
         return PERCENT;
     }
 
     /**
-     * @Return the int FAULTLENGTH
+     * @return the int FAULTLENGTH
      */
     public static int getFaultlength() {
         return FAULTLENGTH;
     }
 
     /**
-     * @Return the double HIGH_USAGE_THRESHOLD_IN_PERCENTS
+     * @return the double HIGH_USAGE_THRESHOLD_IN_PERCENTS
      */
     public static double getHighUsageThresholdInPercents() {
         return HIGH_USAGE_THRESHOLD_IN_PERCENTS;
     }
 
     /**
-     * @Return the long serialVersionUID
+     * @return the long serialVersionUID
      */
     public static long getSerialversionuid() {
         return serialVersionUID;
     }
 
     /**
-     * @Return the boolean SYSTEM_CPU_LOAD_ENABLED
+     * @return the boolean SYSTEM_CPU_LOAD_ENABLED
      */
     public static boolean isSystemCpuLoadEnabled() {
         return SYSTEM_CPU_LOAD_ENABLED;
     }
 
     /**
-     * @Return the boolean localWebXmlExists
+     * @return the boolean localWebXmlExists
      */
     public static boolean isLocalWebXmlExists() {
         return localWebXmlExists;
     }
 
     /**
-     * @Return the boolean localPomXmlExists
+     * @return the boolean localPomXmlExists
      */
     public static boolean isLocalPomXmlExists() {
         return localPomXmlExists;
     }
 
     /**
-     * @Return the double beforeCpuTime
+     * @return the double beforeCpuTime
      */
     public double getBeforeCpuTime() {
         return beforeCpuTime;
     }
 
     /**
-     * @Return the double beforeCpuUpTime
+     * @return the double beforeCpuUpTime
      */
     public double getBeforeCpuUpTime() {
         return beforeCpuUpTime;
     }
 
     /**
-     * @Return the String os
+     * @return the String os
      */
     public String getOs() {
         return os;
     }
 
     /**
-     * @Return the long totalCompliationTime
+     * @return the long totalCompliationTime
      */
     public long getTotalCompliationTime() {
         return totalCompliationTime;
     }
 
     /**
-     * @Return the String pid
+     * @return the String pid
      */
     public String getPid() {
         return pid;
     }
 
     /**
-     * @Return the boolean webXmlExists
+     * @return the boolean webXmlExists
      */
     public boolean isWebXmlExists() {
         return webXmlExists;
     }
 
     /**
-     * @Return the boolean pomXmlExists
+     * @return the boolean pomXmlExists
      */
     public boolean isPomXmlExists() {
         return pomXmlExists;
     }
 
     /**
-     * @Return the JavaInformations JavaInfo
+     * @return the JavaInformations JavaInfo
      */
     public static JavaInformations getJavaInfo() {
         return JavaInfo;
