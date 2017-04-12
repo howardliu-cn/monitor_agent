@@ -23,25 +23,14 @@ import javax.servlet.ServletContext;
  * @Create In 2015年8月25日
  */
 public class MonitorChecker implements Health {
-
     private Logger log = LoggerFactory.getLogger(this.getClass());
-
     private String appName;
-
     private Long sessionId;
-
     private byte[] sessionPassword;
-
     private String appServerPath;
-
     private Thread m;
-
     private Boolean isMonitorStop = false;
-
-    private Boolean isDebug;
-
     private AppMonitor appMonitor;
-
 
     /**
      * @Return the Thread m
@@ -148,11 +137,8 @@ public class MonitorChecker implements Health {
      * @Create In 2015年8月26日 By Jack
      */
     private void init(Integer p, ServletContext sc) {
-        isDebug = Boolean.valueOf(SystemPropertyConfig.getContextProperty("system.seeting.monitor.isDebug", "true"));
-        if (!isDebug) {
-            this.appName = SystemPropertyConfig.getContextProperty("system.setting.context-name");
-            appMonitor = AppMonitor.instance(p, sc);
-        }
+        this.appName = SystemPropertyConfig.getContextProperty("system.setting.context-name");
+        appMonitor = AppMonitor.instance(p, sc);
     }
 
 
@@ -191,16 +177,8 @@ public class MonitorChecker implements Health {
         m.start();
     }
 
-    /*
-     * (non-Javadoc)
-     *
-     * @see com.wfj.netty.monitor.infc.Heart#sendHeartLive(java.lang.String)
-     */
     public void startHealth(String status) {
         try {
-            if (isDebug) {
-                return;
-            }
             // TODO check connection is health
             if (true) {
                 // 1.初始化跟踪节点
@@ -222,15 +200,12 @@ public class MonitorChecker implements Health {
      * @see com.wfj.netty.monitor.infc.Heart#updateHealth(java.lang.String)
      */
     public void updateHealth(String status) {
-        if (isDebug) {
-            return;
-        }
         try {
             // 更新自身节点状态
             Object[] tagArgs = {status};
             String rootDesc = SystemPropertyConfig.getContextProperty("system.setting.context-desc");
             rootDesc = PropertyAdapter.formatter(rootDesc, tagArgs);
-            System.out.println(rootDesc);
+            System.err.println(rootDesc);
         } catch (Exception e) {
             log.error(EnvPropertyConfig.getContextProperty("env.setting.server.error.00001011"));
             log.error("Details: " + e.getMessage());
@@ -243,9 +218,6 @@ public class MonitorChecker implements Health {
      * @see com.wfj.netty.monitor.infc.Heart#shutdowdHeartLive(java.lang.String)
      */
     public void shutdownHealth(String status) {
-        if (isDebug) {
-            return;
-        }
         // 1.停止实例信息获取模块
         this.isMonitorStop = this.m != null;
         // 2.停止zk 链接监控线程

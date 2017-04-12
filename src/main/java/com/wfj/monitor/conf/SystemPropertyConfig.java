@@ -3,6 +3,8 @@ package com.wfj.monitor.conf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.InputStream;
+
 import static com.wfj.monitor.common.Constant.*;
 
 /**
@@ -15,12 +17,18 @@ public class SystemPropertyConfig {
 
     private static PropertyAdapter _config = new PropertyAdapter();
 
+    static {
+        _config.add(DEFAULT_MONITOR_PROPERTIES_FILE);
+    }
+
     public static void init() {
-        init(CUSTOM_MONITOR_PROPERTIES_FILE);
+        InputStream in = SystemPropertyConfig.class.getResourceAsStream(CUSTOM_MONITOR_PROPERTIES_FILE);
+        if (in != null) {
+            init(CUSTOM_MONITOR_PROPERTIES_FILE);
+        }
     }
 
     public static void init(String fileName) {
-        _config.add(DEFAULT_MONITOR_PROPERTIES_FILE);
         _config.add(fileName);
         IS_DEBUG = SystemPropertyConfig.getBoolean(SYSTEM_SETTING_MONITOR_IS_DEBUG, true);
     }

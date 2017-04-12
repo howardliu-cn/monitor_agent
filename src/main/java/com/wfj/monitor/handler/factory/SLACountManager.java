@@ -7,7 +7,7 @@
  */
 package com.wfj.monitor.handler.factory;
 
-import com.wfj.monitor.conf.SystemPropertyConfig;
+import com.wfj.monitor.common.Constant;
 
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -45,8 +45,7 @@ public class SLACountManager {
         if (slam == null) {
             slam = new SLACountManager();
         }
-        slam.setIsDebug(new AtomicBoolean(
-                Boolean.valueOf(SystemPropertyConfig.getContextProperty("system.seeting.monitor.isDebug", "true"))));
+        slam.setIsDebug(new AtomicBoolean(Constant.IS_DEBUG));
         slam.setSumDealRequestCounts(new AtomicLong());
         slam.setSumDealRequestTime(new AtomicLong());
         slam.setSumInboundRequestCounts(new AtomicLong());

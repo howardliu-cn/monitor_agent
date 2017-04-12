@@ -8,7 +8,6 @@ import javassist.NotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.servlet.FilterConfig;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -53,15 +52,17 @@ public class HttpServletMethodRewriteHandler extends MethodRewriteHandler {
 
     private void doRewriteInit(CtClass ctClass) {
         try {
-            CtClass[] params = {classPool.get(FilterConfig.class.getName())};
-            CtMethod ctMethod = ctClass.getDeclaredMethod("init", params);
-            ctMethod.insertBefore(
-                    "if(com.wfj.monitor.common.Constant.SERVLET_CONTEXT == null) {com.wfj.monitor.common.Constant.SERVLET_CONTEXT = $1.getServletContext();}"
+            CtMethod ctMethod = ctClass.getDeclaredMethod("init");
+            ctMethod.insertAfter(
+                    "if(com.wfj.monitor.common.Constant.SERVLET_CONTEXT == null) {" +
+                            "com.wfj.monitor.common.Constant.SERVLET_CONTEXT = $0.getServletContext();" +
+                            "com.wfj.monitor.counter.MonitorStarter.run();" +
+                            "}"
             );
         } catch (NotFoundException ignored) {
+            logger.info("not found init method in " + ctClass.getName());
         } catch (Exception e) {
-            logger.warn("SKIPPED init(javax.servlet.FilterConfig) in " + ctClass.getName() +
-                    ", the reason is " + e.getMessage());
+            logger.warn("SKIPPED init() in " + ctClass.getName() + ", the reason is " + e.getMessage());
         }
     }
 
@@ -84,9 +85,9 @@ public class HttpServletMethodRewriteHandler extends MethodRewriteHandler {
                     "com.wfj.monitor.counter.RequestCounter.ThreadRequest.end(Thread.currentThread().getId(), $1, $2);"
             );
         } catch (NotFoundException ignored) {
+            logger.info("not found " + methodName + " method in " + ctClass.getName());
         } catch (Exception e) {
             logger.warn("SKIPPED " + methodName + " in " + ctClass.getName() + ", the reason is " + e.getMessage());
         }
     }
-
 }
