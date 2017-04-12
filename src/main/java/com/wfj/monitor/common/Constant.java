@@ -11,6 +11,7 @@ import java.util.UUID;
  */
 public class Constant {
     public static final String THIS_TAG = UUID.randomUUID().toString();
+    public static final String HEADER_SERVER_TAG = "Server-Tag";
 
     public static final String SYSTEM_SETTING_MONITOR_IS_DEBUG = "system.setting.monitor.isDebug";
 }

@@ -56,21 +56,16 @@ public class HttpServletMethodRewriteHandler extends MethodRewriteHandler {
                     classPool.get(HttpServletResponse.class.getName())
             };
             CtMethod ctMethod = ctClass.getDeclaredMethod(methodName, params);
-            ctMethod.addLocalVariable("__methodRunTime", CtClass.longType);
-            ctMethod.addLocalVariable("__methodThrowable", classPool.get(Throwable.class.getName()));
             ctMethod.insertBefore(
-                    "__methodRunTime = -System.currentTimeMillis();"
+                    "com.wfj.monitor.counter.RequestCounter.ThreadRequest.begin(Thread.currentThread().getId(), $1, $2);"
             );
             ctMethod.addCatch(
-                    "com.wfj.monitor.common.Printer.add(Thread.currentThread().getId(), $e);" +
+                    "com.wfj.monitor.counter.RequestCounter.ThreadRequest.catchBlock(Thread.currentThread().getId(), $1, $2, $e);" +
                             "throw $e;",
                     classPool.get(Throwable.class.getName())
             );
             ctMethod.insertAfter(
-                    "__methodRunTime += System.currentTimeMillis();" +
-                            "__methodThrowable = com.wfj.monitor.common.Printer.getAndRemove(Thread.currentThread().getId());" +
-                            "System.out.println(\"" + ctMethod.getName() + " used \" + __methodRunTime + \"ms\");" +
-                            "com.wfj.monitor.common.Printer.counter($1, $2, __methodRunTime, __methodThrowable);"
+                    "com.wfj.monitor.counter.RequestCounter.ThreadRequest.end(Thread.currentThread().getId(), $1, $2);"
             );
 
         } catch (NotFoundException ignored) {

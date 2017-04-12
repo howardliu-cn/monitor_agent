@@ -1,4 +1,4 @@
-package com.wfj.monitor.common;
+package com.wfj.monitor.counter;
 
 import com.wfj.monitor.conf.SystemPropertyConfig;
 
@@ -185,6 +185,6 @@ public class SLACounter {
                 ", isDebug=" + isDebug +
                 ", peerDate=" + peerDate +
                 '}' +
-                ", responseMap{" + responseMap.toString() +'}';
+                ",\nresponseMap{" + responseMap.toString() +'}';
     }
 }

@@ -1,4 +1,4 @@
-package com.wfj.monitor.common;
+package com.wfj.monitor.counter;
 
 import java.lang.management.ManagementFactory;
 import java.util.Collections;
