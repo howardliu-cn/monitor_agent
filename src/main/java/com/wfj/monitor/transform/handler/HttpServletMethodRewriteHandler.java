@@ -8,6 +8,7 @@ import javassist.NotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.servlet.FilterConfig;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -22,6 +23,7 @@ import javax.servlet.http.HttpServletResponse;
 public class HttpServletMethodRewriteHandler extends MethodRewriteHandler {
     private Logger logger = LoggerFactory.getLogger(this.getClass());
     private static final HttpServletMethodRewriteHandler THIS_HANDLER = new HttpServletMethodRewriteHandler();
+    private ClassPool classPool;
 
     public static HttpServletMethodRewriteHandler instance() {
         return THIS_HANDLER;
@@ -29,8 +31,9 @@ public class HttpServletMethodRewriteHandler extends MethodRewriteHandler {
 
     public void doRewrite(CtClass ctClass) {
         if (isHttpServlet(ctClass)) {
-            System.err.println("begin to wrap : " + ctClass.getName());
-            logger.debug("begin to wrap HttpServlet");
+            classPool = ClassPool.getDefault();
+            logger.debug("begin to wrapping HttpServlet");
+            doRewriteInit(ctClass);
             doRewrite(ctClass, "doHead");
             doRewrite(ctClass, "doGet");
             doRewrite(ctClass, "doPost");
@@ -48,9 +51,22 @@ public class HttpServletMethodRewriteHandler extends MethodRewriteHandler {
         return isChild(ctClass, HttpServlet.class);
     }
 
+    private void doRewriteInit(CtClass ctClass) {
+        try {
+            CtClass[] params = {classPool.get(FilterConfig.class.getName())};
+            CtMethod ctMethod = ctClass.getDeclaredMethod("init", params);
+            ctMethod.insertBefore(
+                    "if(com.wfj.monitor.common.Constant.servletContext == null) {com.wfj.monitor.common.Constant.servletContext = $1;}"
+            );
+        } catch (NotFoundException ignored) {
+        } catch (Exception e) {
+            logger.warn("SKIPPED init(javax.servlet.FilterConfig) in " + ctClass.getName() +
+                    ", the reason is " + e.getMessage());
+        }
+    }
+
     private void doRewrite(CtClass ctClass, String methodName) {
         try {
-            ClassPool classPool = ClassPool.getDefault();
             CtClass[] params = {
                     classPool.get(HttpServletRequest.class.getName()),
                     classPool.get(HttpServletResponse.class.getName())
@@ -67,10 +83,8 @@ public class HttpServletMethodRewriteHandler extends MethodRewriteHandler {
             ctMethod.insertAfter(
                     "com.wfj.monitor.counter.RequestCounter.ThreadRequest.end(Thread.currentThread().getId(), $1, $2);"
             );
-
         } catch (NotFoundException ignored) {
         } catch (Exception e) {
-            e.printStackTrace();
             logger.warn("SKIPPED " + methodName + " in " + ctClass.getName() + ", the reason is " + e.getMessage());
         }
     }

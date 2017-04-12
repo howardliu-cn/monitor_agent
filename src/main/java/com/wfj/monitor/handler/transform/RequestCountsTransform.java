@@ -14,6 +14,7 @@ import java.security.ProtectionDomain;
 import javax.servlet.http.HttpServlet;
 
 import com.wfj.monitor.conf.EnvPropertyConfig;
+import com.wfj.monitor.conf.PropertyAdapter;
 import com.wfj.monitor.handler.dto.MonitorLogger;
 import com.wfj.monitor.handler.factory.MonitorLoggerFactory;
 import com.wfj.monitor.handler.handler.RequestHandler;

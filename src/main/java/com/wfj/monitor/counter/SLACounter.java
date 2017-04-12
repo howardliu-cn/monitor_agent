@@ -1,14 +1,12 @@
 package com.wfj.monitor.counter;
 
-import com.wfj.monitor.conf.SystemPropertyConfig;
-
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static com.wfj.monitor.common.Constant.SYSTEM_SETTING_MONITOR_IS_DEBUG;
+import static com.wfj.monitor.common.Constant.IS_DEBUG;
 
 /**
  * <br>created at 17-4-11
@@ -28,9 +26,10 @@ public class SLACounter {
     private volatile long peerDealRequestTime;
     private volatile boolean isDebug;
     private Date peerDate;
-    private static final Map<String, AtomicLong> responseMap = Collections.synchronizedMap(new HashMap<String, AtomicLong>(6, 1));
+    private static final Map<String, AtomicLong> responseMap = Collections
+            .synchronizedMap(new HashMap<String, AtomicLong>(6, 1));
 
-    static{
+    static {
         responseMap.put("1xx", new AtomicLong());
         responseMap.put("2xx", new AtomicLong());
         responseMap.put("3xx", new AtomicLong());
@@ -43,7 +42,7 @@ public class SLACounter {
     }
 
     public static void init() {
-        _COUNTER.setDebug(SystemPropertyConfig.getBoolean(SYSTEM_SETTING_MONITOR_IS_DEBUG, true));
+        _COUNTER.setDebug(IS_DEBUG);
         _COUNTER.setSumInboundRequestCounts(0);
         _COUNTER.setSumOutboundRequestCounts(0);
         _COUNTER.setSumDealRequestCounts(0);
@@ -89,15 +88,15 @@ public class SLACounter {
     }
 
     public static void addHttpStatus(int httpStatus) {
-        if(httpStatus >= 100 && httpStatus < 200) {
+        if (httpStatus >= 100 && httpStatus < 200) {
             responseMap.get("1xx").incrementAndGet();
-        } else if(httpStatus < 300) {
+        } else if (httpStatus < 300) {
             responseMap.get("2xx").incrementAndGet();
-        } else if(httpStatus < 400){
+        } else if (httpStatus < 400) {
             responseMap.get("3xx").incrementAndGet();
-        } else if(httpStatus < 500) {
+        } else if (httpStatus < 500) {
             responseMap.get("4xx").incrementAndGet();
-        } else if(httpStatus <= 599) {
+        } else if (httpStatus <= 599) {
             responseMap.get("5xx").incrementAndGet();
         } else {
             responseMap.get("xxx").incrementAndGet();
@@ -185,6 +184,6 @@ public class SLACounter {
                 ", isDebug=" + isDebug +
                 ", peerDate=" + peerDate +
                 '}' +
-                ",\nresponseMap{" + responseMap.toString() +'}';
+                ",\nresponseMap{" + responseMap.toString() + '}';
     }
 }

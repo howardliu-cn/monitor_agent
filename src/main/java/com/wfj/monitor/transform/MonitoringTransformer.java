@@ -37,7 +37,7 @@ public class MonitoringTransformer implements ClassFileTransformer {
             ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
         if (loader == null
                 || ApmFilter.isNotNeedInjectClassLoader(loader.getClass().getName())
-                || ApmFilter.isNotNeedInject(className)) {
+                || (ApmFilter.isNotNeedInject(className) && !ApmFilter.isNeedInject(className))) {
             logger.debug(className + "is not excluded, SKIPPED!");
             return classfileBuffer;
         }
