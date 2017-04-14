@@ -14,13 +14,14 @@ import java.sql.Statement;
  * @version 1.0.0
  * @since 1.0.0
  */
-public class StatementMethodRewriteHandler extends SqlMethodRewriteHandler {
+public class StatementHandler extends SqlMethodRewriteHandler {
     private Logger logger = LoggerFactory.getLogger(this.getClass());
 
     @Override
-    public void doRewrite(CtClass ctClass) {
+    public void doWeave(CtClass ctClass) {
         if (isStatement(ctClass)) {
             System.err.println("begin to wrap Statement");
+            // TODO weave Statement's method
 //        execute
 //        executeQuery
 //        executeUpdate
@@ -28,7 +29,7 @@ public class StatementMethodRewriteHandler extends SqlMethodRewriteHandler {
 //        executeLargeBatch
 //        executeLargeUpdate
         } else if (this.getHandler() != null) {
-            this.getHandler().doRewrite(ctClass);
+            this.getHandler().doWeave(ctClass);
         }
     }
 

@@ -14,24 +14,24 @@ import java.sql.PreparedStatement;
  * @version 1.0.0
  * @since 1.0.0
  */
-public class PreparedStatementMethodRewriteHandler extends SqlMethodRewriteHandler {
+public class PreparedStatementHandler extends SqlMethodRewriteHandler {
     private Logger logger = LoggerFactory.getLogger(this.getClass());
 
     @Override
-    public void doRewrite(CtClass ctClass) {
+    public void doWeave(CtClass ctClass) {
         if (isPreparedStatement(ctClass)) {
             System.err.println("begin to wrap PreparedStatement");
-            executeProxyInPreparedStatement(ctClass, "execute");
-            executeProxyInPreparedStatement(ctClass, "executeQuery");
-            executeProxyInPreparedStatement(ctClass, "executeUpdate");
-            executeProxyInPreparedStatement(ctClass, "executeLargeUpdate");
-            cleanPreparedStatement(ctClass);
+            doWeave(ctClass, "execute");
+            doWeave(ctClass, "executeQuery");
+            doWeave(ctClass, "executeUpdate");
+            doWeave(ctClass, "executeLargeUpdate");
+            doWeaveClose(ctClass);
         } else if (this.getHandler() != null) {
-            this.getHandler().doRewrite(ctClass);
+            this.getHandler().doWeave(ctClass);
         }
     }
 
-    private void executeProxyInPreparedStatement(CtClass ctClass, String methodName) {
+    private void doWeave(CtClass ctClass, String methodName) {
         try {
             CtMethod[] ctMethods = ctClass.getDeclaredMethods(methodName);
             for (CtMethod ctMethod : ctMethods) {
@@ -49,7 +49,7 @@ public class PreparedStatementMethodRewriteHandler extends SqlMethodRewriteHandl
         }
     }
 
-    private void cleanPreparedStatement(CtClass ctClass) {
+    private void doWeaveClose(CtClass ctClass) {
         try {
             CtMethod[] ctMethods = ctClass.getDeclaredMethods("close");
             for (CtMethod ctMethod : ctMethods) {

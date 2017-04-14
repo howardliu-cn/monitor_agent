@@ -21,28 +21,28 @@ import javax.servlet.http.HttpServletResponse;
  */
 public class HttpServletMethodRewriteHandler extends MethodRewriteHandler {
     private Logger logger = LoggerFactory.getLogger(this.getClass());
-    private static final HttpServletMethodRewriteHandler THIS_HANDLER = new HttpServletMethodRewriteHandler();
+    private static final HttpServletMethodRewriteHandler SERVLET_HANDLER = new HttpServletMethodRewriteHandler();
     private ClassPool classPool;
 
     public static HttpServletMethodRewriteHandler instance() {
-        return THIS_HANDLER;
+        return SERVLET_HANDLER;
     }
 
-    public void doRewrite(CtClass ctClass) {
+    public void doWeave(CtClass ctClass) {
         if (isHttpServlet(ctClass)) {
             classPool = ClassPool.getDefault();
             logger.debug("begin to wrapping HttpServlet");
-            doRewriteInit(ctClass);
-            doRewrite(ctClass, "doHead");
-            doRewrite(ctClass, "doGet");
-            doRewrite(ctClass, "doPost");
-            doRewrite(ctClass, "doPut");
-            doRewrite(ctClass, "doDelete");
-            doRewrite(ctClass, "doOptions");
-            doRewrite(ctClass, "doTrace");
+            doWeaveInit(ctClass);
+            doWeave(ctClass, "doHead");
+            doWeave(ctClass, "doGet");
+            doWeave(ctClass, "doPost");
+            doWeave(ctClass, "doPut");
+            doWeave(ctClass, "doDelete");
+            doWeave(ctClass, "doOptions");
+            doWeave(ctClass, "doTrace");
             logger.debug("ended wrap HttpServlet");
         } else if (this.getHandler() != null) {
-            this.getHandler().doRewrite(ctClass);
+            this.getHandler().doWeave(ctClass);
         }
     }
 
@@ -50,7 +50,7 @@ public class HttpServletMethodRewriteHandler extends MethodRewriteHandler {
         return isChild(ctClass, HttpServlet.class);
     }
 
-    private void doRewriteInit(CtClass ctClass) {
+    private void doWeaveInit(CtClass ctClass) {
         try {
             CtMethod ctMethod = ctClass.getDeclaredMethod("init");
             ctMethod.insertAfter(
@@ -66,7 +66,7 @@ public class HttpServletMethodRewriteHandler extends MethodRewriteHandler {
         }
     }
 
-    private void doRewrite(CtClass ctClass, String methodName) {
+    private void doWeave(CtClass ctClass, String methodName) {
         try {
             CtClass[] params = {
                     classPool.get(HttpServletRequest.class.getName()),

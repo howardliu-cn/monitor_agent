@@ -5,7 +5,7 @@ import com.wfj.monitor.dto.JavaInformations;
 import com.wfj.monitor.handler.Health;
 import com.wfj.monitor.handler.MonitorChecker;
 import com.wfj.monitor.handler.factory.SLACountManager;
-import com.wfj.monitor.handler.warpper.RequestWrapper;
+import com.wfj.monitor.handler.wrapper.RequestWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,7 +24,7 @@ public class MonitorStarter {
 
     public static void run() {
         if (!isStarted) {
-            Thread t = new Thread(new MonitorStarterRunnable());
+            Thread t = new Thread(new MonitorStarterRunner());
             t.setDaemon(true);
             t.setName("monitor-starter-thread");
             t.run();
@@ -32,7 +32,7 @@ public class MonitorStarter {
         }
     }
 
-    static class MonitorStarterRunnable implements Runnable {
+    static class MonitorStarterRunner implements Runnable {
         @Override
         public void run() {
             if (com.wfj.monitor.common.Constant.IS_DEBUG) {

@@ -18,21 +18,29 @@ public class MethodRewriteHandler {
 
     static {
         _HANDLER.addLast(HttpServletMethodRewriteHandler.instance())
-                .addLast(SqlMethodRewriteHandler.instance());
+                .addLast(SqlMethodRewriteHandler.instance())
+        ;
     }
 
     public static MethodRewriteHandler instance() {
         return _HANDLER;
     }
 
-    public void doRewrite(CtClass ctClass) {
+    public void doWeave(CtClass ctClass) {
         assert ctClass != null;
         if (this.getHandler() != null) {
-            this.getHandler().doRewrite(ctClass);
+            this.getHandler().doWeave(ctClass);
         }
     }
 
-    protected boolean isChild(CtClass ctClass, Class<?> clazz) {
+    protected static boolean isChild(CtClass ctClass, Class<?> clazz) {
+        return isChild(ctClass, clazz.getName());
+    }
+
+    protected static boolean isChild(CtClass ctClass, String className) {
+        if (ctClass.getName().equals(className)) {
+            return true;
+        }
         CtClass superclass;
         try {
             superclass = ctClass.getSuperclass();
@@ -40,12 +48,19 @@ public class MethodRewriteHandler {
             return false;
         }
 
-        return !(superclass == null || Object.class.getName().equals(superclass.getName()))
+        return !(superclass == null || "java.lang.Object".equals(superclass.getName()))
                 &&
-                (clazz.getName().equals(superclass.getName()) || isChild(superclass, clazz));
+                (className.equals(superclass.getName()) || isChild(superclass, className));
     }
 
     protected static boolean isImpl(CtClass ctClass, Class<?> clazz) {
+        return isImpl(ctClass, clazz.getName());
+    }
+
+    protected static boolean isImpl(CtClass ctClass, String interfaceName) {
+        if (ctClass.getName().equals(interfaceName)) {
+            return true;
+        }
         CtClass[] interfaces;
         try {
             interfaces = ctClass.getInterfaces();
@@ -53,9 +68,16 @@ public class MethodRewriteHandler {
             return false;
         }
         for (CtClass anInterface : interfaces) {
-            if (clazz.getName().equals(anInterface.getName()) || isImpl(anInterface, clazz)) {
+            if (interfaceName.equals(anInterface.getName()) || isImpl(anInterface, interfaceName)) {
                 return true;
             }
+        }
+        try {
+            CtClass superclass = ctClass.getSuperclass();
+            return !(superclass == null || "java.lang.Object".equals(superclass.getName()))
+                    &&
+                    isImpl(superclass, interfaceName);
+        } catch (NotFoundException ignored) {
         }
         return false;
     }
@@ -69,7 +91,13 @@ public class MethodRewriteHandler {
     }
 
     public MethodRewriteHandler addLast(MethodRewriteHandler handler) {
-        this.setHandler(handler);
+        MethodRewriteHandler _handler = this.getHandler();
+        MethodRewriteHandler tail = this;
+        while (_handler != null) {
+            tail = _handler;
+            _handler = _handler.getHandler();
+        }
+        tail.setHandler(handler);
         return handler;
     }
 }

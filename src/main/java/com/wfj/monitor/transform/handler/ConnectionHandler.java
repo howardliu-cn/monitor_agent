@@ -14,21 +14,21 @@ import java.sql.Connection;
  * @version 1.0.0
  * @since 1.0.0
  */
-public class ConnectionMethodRewriteHandler extends SqlMethodRewriteHandler {
+public class ConnectionHandler extends SqlMethodRewriteHandler {
     private Logger logger = LoggerFactory.getLogger(this.getClass());
 
     @Override
-    public void doRewrite(CtClass ctClass) {
+    public void doWeave(CtClass ctClass) {
         if (isConnection(ctClass)) {
             System.err.println("begin to wrap Connection");
-            prepareMethodProxy(ctClass, "prepareStatement");
-            prepareMethodProxy(ctClass, "prepareCall");
+            prepareMethodWeave(ctClass, "prepareStatement");
+            prepareMethodWeave(ctClass, "prepareCall");
         } else if (this.getHandler() != null) {
-            this.getHandler().doRewrite(ctClass);
+            this.getHandler().doWeave(ctClass);
         }
     }
 
-    private void prepareMethodProxy(CtClass ctClass, String methodName) {
+    private void prepareMethodWeave(CtClass ctClass, String methodName) {
         try {
             CtMethod[] ctMethods = ctClass.getDeclaredMethods(methodName);
             for (CtMethod ctMethod : ctMethods) {

@@ -39,31 +39,4 @@ public class MonitorAgent {
         SLACounter.init();
         inst.addTransformer(new MonitoringTransformer());
     }
-
-    /**
-     * 默认监控启动方法，完成初始化动作
-     * 第二优先级
-     * 使用参数形式，如：-javaagent:xxxx=xxx配置JVM
-     *
-     * @param args void
-     * @Methods Name premain
-     * @Create In 2017年1月5日 By Jack
-     */
-    public static void premain(String args) {
-    }
-
-    /**
-     * 动态代理注入启动方法，完成初始化动作
-     * 需配合线程类型主程序使用
-     * 使用非参数形式，如：-javaagent:xxxx=xxx配置JVM
-     *
-     * @param agentArguments
-     * @param instrumentation
-     * @throws UnmodifiableClassException void
-     * @Methods Name agentmain
-     * @Create In 2017年1月5日 By Jack
-     */
-    public static void agentmain(String agentArguments, Instrumentation instrumentation)
-            throws UnmodifiableClassException {
-    }
 }

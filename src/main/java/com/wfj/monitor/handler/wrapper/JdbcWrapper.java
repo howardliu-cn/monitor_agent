@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wfj.monitor.handler.warpper;
+package com.wfj.monitor.handler.wrapper;
 
 import com.wfj.monitor.conf.Parameter;
 import com.wfj.monitor.conf.Parameters;
@@ -357,6 +357,10 @@ public final class JdbcWrapper {
      */
     public static void registerSpringDataSource(String name, DataSource dataSource) {
         JdbcWrapperHelper.registerSpringDataSource(name, dataSource);
+    }
+
+    public static void registerCommonDataSource(String name, DataSource dataSource) {
+        JdbcWrapperHelper.registerCommonDataSource(name, dataSource);
     }
 
     public Object doExecute(String requestName, Statement statement, Method method, Object[] args) throws
@@ -711,6 +715,13 @@ public final class JdbcWrapper {
                 JdbcWrapperHelper.setFieldValue(connection, conFieldName, con);
             }
         }
+    }
+
+    public void fillDataSourceInfo(DataSource dataSource) {
+        assert dataSource != null;
+        JdbcWrapperHelper
+                .pullDataSourceProperties(dataSource.getClass().getName() + "@" + System.identityHashCode(dataSource),
+                        dataSource);
     }
 
     /**

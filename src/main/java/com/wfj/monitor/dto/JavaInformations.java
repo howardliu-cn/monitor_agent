@@ -19,7 +19,7 @@ package com.wfj.monitor.dto;
 
 import com.wfj.monitor.conf.EnvPropertyConfig;
 import com.wfj.monitor.conf.Parameters;
-import com.wfj.monitor.handler.warpper.JdbcWrapper;
+import com.wfj.monitor.handler.wrapper.JdbcWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

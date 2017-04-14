@@ -19,7 +19,7 @@ package com.wfj.monitor.dto;
 
 import com.wfj.monitor.conf.Parameter;
 import com.wfj.monitor.conf.Parameters;
-import com.wfj.monitor.handler.warpper.CounterResponseStream;
+import com.wfj.monitor.handler.wrapper.CounterResponseStream;
 import com.wfj.monitor.util.TransportFormat;
 
 import java.io.*;

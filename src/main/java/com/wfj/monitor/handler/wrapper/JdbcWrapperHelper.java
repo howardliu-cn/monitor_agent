@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.wfj.monitor.handler.warpper;
+package com.wfj.monitor.handler.wrapper;
 
 import com.alibaba.druid.pool.DruidDataSource;
 import com.wfj.monitor.conf.Parameter;
@@ -40,6 +40,7 @@ import java.util.*;
 public final class JdbcWrapperHelper {
     private static final String MAX_ACTIVE_PROPERTY_NAME = "maxActive";
     private static final Map<String, DataSource> SPRING_DATASOURCES = new LinkedHashMap<>();
+    private static final Map<String, DataSource> COMMON_DATASOURCES = new LinkedHashMap<>();
     private static final Map<String, DataSource> JNDI_DATASOURCES_BACKUP = new LinkedHashMap<>();
     private static final BasicDataSourcesProperties TOMCAT_BASIC_DATASOURCES_PROPERTIES = new BasicDataSourcesProperties();
     private static final BasicDataSourcesProperties DBCP_BASIC_DATASOURCES_PROPERTIES = new BasicDataSourcesProperties();
@@ -104,6 +105,10 @@ public final class JdbcWrapperHelper {
         SPRING_DATASOURCES.put(name, dataSource);
     }
 
+    public static void registerCommonDataSource(String name, DataSource dataSource) {
+        COMMON_DATASOURCES.put(name, dataSource);
+    }
+
     public static void rebindDataSource(ServletContext servletContext, String jndiName, DataSource dataSource,
             DataSource dataSourceProxy) throws
             Throwable {
@@ -139,6 +144,7 @@ public final class JdbcWrapperHelper {
             dataSources = new LinkedHashMap<>();
         }
         dataSources.putAll(SPRING_DATASOURCES);
+        dataSources.putAll(COMMON_DATASOURCES);
         return dataSources;
     }
 

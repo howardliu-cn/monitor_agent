@@ -1,7 +1,6 @@
 package com.wfj.monitor.transform.handler;
 
 import com.wfj.monitor.transform.MethodRewriteHandler;
-import javassist.CtClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,20 +13,17 @@ import org.slf4j.LoggerFactory;
  */
 public class SqlMethodRewriteHandler extends MethodRewriteHandler {
     private Logger logger = LoggerFactory.getLogger(this.getClass());
-    private static final SqlMethodRewriteHandler THIS_HANDLER = new SqlMethodRewriteHandler();
+    private static final SqlMethodRewriteHandler _HANDLER = new SqlMethodRewriteHandler();
 
-    public static SqlMethodRewriteHandler instance() {
-        THIS_HANDLER
-                .addLast(new ConnectionMethodRewriteHandler())
-                .addLast(new PreparedStatementMethodRewriteHandler())
-                .addLast(new StatementMethodRewriteHandler());
-        return THIS_HANDLER;
+    static {
+        _HANDLER
+                .addLast(DataSourceHandler.instance())
+                .addLast(new ConnectionHandler())
+                .addLast(new PreparedStatementHandler())
+                .addLast(new StatementHandler());
     }
 
-    @Override
-    public void doRewrite(CtClass ctClass) {
-        if (this.getHandler() != null) {
-            this.getHandler().doRewrite(ctClass);
-        }
+    public static SqlMethodRewriteHandler instance() {
+        return _HANDLER;
     }
 }

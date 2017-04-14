@@ -1,13 +1,17 @@
 package com.wfj.monitor.counter;
 
+import com.wfj.monitor.handler.factory.SLACountManager;
+import com.wfj.monitor.handler.wrapper.RequestWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.lang.management.ManagementFactory;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static com.wfj.monitor.common.Constant.HEADER_SERVER_TAG;
 import static com.wfj.monitor.common.Constant.THIS_TAG;
@@ -37,14 +41,19 @@ public class RequestCounter extends Counter {
             assert request != null;
             assert response != null;
             long startTime = System.currentTimeMillis();
+            long startThreadCupTime = ManagementFactory.getThreadMXBean().getThreadCpuTime(tid);
             response.setHeader(HEADER_SERVER_TAG, THIS_TAG);
             RequestDataWrapper wrapper = new RequestDataWrapper();
             wrapper.setTid(tid);
             wrapper.setRequest(request);
             wrapper.setResponse(response);
             wrapper.setStartTime(startTime);
+            wrapper.setStartThreadCupTime(startThreadCupTime);
             REQUEST_COUNTER_MAP.put(tid, wrapper);
             SLACounter.addSumInboundRequestCounts();
+
+            // counter
+            SLACountManager.instance().getSumInboundRequestCounts().incrementAndGet();
         }
 
         public static void catchBlock(long tid, HttpServletRequest request, HttpServletResponse response,
@@ -61,24 +70,48 @@ public class RequestCounter extends Counter {
             assert response != null;
             long endTime = System.currentTimeMillis();
             RequestDataWrapper wrapper = REQUEST_COUNTER_MAP.get(tid);
-            long duration = endTime - wrapper.getStartTime();
+            long startTime = wrapper.getStartTime();
+            long startThreadCupTime = wrapper.getStartThreadCupTime();
+            long duration = endTime - startTime;
             int status = response.getStatus();
             SLACounter.addHttpStatus(status);
             //noinspection ThrowableResultOfMethodCallIgnored
             Throwable cause = wrapper.getCause();
             if (cause == null) {
-                SLACounter.addSumOutboundRequestCounts();
                 if (status < SC_BAD_REQUEST || status == SC_UNAUTHORIZED) {
                     SLACounter.addSumDealRequestCounts();
                     SLACounter.setPeerDealRequestTime(duration);
                     SLACounter.addSumDealRequestTime(duration);
+
+                    // counter
+                    SLACountManager.instance().getSumDealRequestCounts().incrementAndGet();
+                    SLACountManager.instance().setPeerDealRequestTime(new AtomicLong(duration));
+                    long sumDealTime = SLACountManager.instance().getSumDealRequestTime().get() + duration;
+                    SLACountManager.instance().setSumDealRequestTime(new AtomicLong(sumDealTime));
                 } else {
                     SLACounter.addSumErrDealRequestCounts();
                     SLACounter.addSumErrDealRequestTime(duration);
+
+                    // counter
+                    long sumDealTime = SLACountManager.instance().getSumErrDealRequestTime().get() + duration;
+                    SLACountManager.instance().getSumErrDealRequestCounts().incrementAndGet();
+                    SLACountManager.instance().setSumErrDealRequestTime(new AtomicLong(sumDealTime));
                 }
+                SLACounter.addSumOutboundRequestCounts();
+
+                // counter
+                SLACountManager.instance().getSumOutboundRequestCounts().incrementAndGet();
+                RequestWrapper.SINGLETON.doExecute(request, response, startThreadCupTime, startTime);
             } else {
                 SLACounter.addSumErrDealRequestCounts();
                 SLACounter.addSumErrDealRequestTime(duration);
+
+                long sumDealTime = SLACountManager.instance().getSumErrDealRequestTime().get() + duration;
+                SLACountManager.instance().getSumErrDealRequestCounts().incrementAndGet();
+                SLACountManager.instance().setSumErrDealRequestTime(new AtomicLong(sumDealTime));
+
+                RequestWrapper.SINGLETON.doError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, startThreadCupTime,
+                        startTime);
             }
             if (logger.isDebugEnabled()) {
                 logger.debug("the request counter is : " + SLACounter.instance());
@@ -92,6 +125,7 @@ public class RequestCounter extends Counter {
         private HttpServletRequest request;
         private HttpServletResponse response;
         private long startTime;
+        private long startThreadCupTime;
         private Throwable cause;
 
         public long getTid() {
@@ -124,6 +158,14 @@ public class RequestCounter extends Counter {
 
         public void setStartTime(long startTime) {
             this.startTime = startTime;
+        }
+
+        public long getStartThreadCupTime() {
+            return startThreadCupTime;
+        }
+
+        public void setStartThreadCupTime(long startThreadCupTime) {
+            this.startThreadCupTime = startThreadCupTime;
         }
 
         public Throwable getCause() {

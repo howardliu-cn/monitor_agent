@@ -5,6 +5,7 @@ import javassist.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.security.ProtectionDomain;
@@ -55,7 +56,7 @@ public class MonitoringTransformer implements ClassFileTransformer {
             try {
                 ctClass = classPool.get(fullyQualifiedClassName);
             } catch (NotFoundException e) {
-                ctClass = classPool.makeClass(fullyQualifiedClassName);
+                ctClass = classPool.makeClass(new ByteArrayInputStream(classfileBuffer));
             }
 
             //冻结的类，不需要处理
@@ -79,7 +80,7 @@ public class MonitoringTransformer implements ClassFileTransformer {
                 return classfileBuffer;
             }
 
-            this.methodRewriteHandler.doRewrite(ctClass);
+            this.methodRewriteHandler.doWeave(ctClass);
 
             return ctClass.toBytecode();
         } catch (Exception e) {

@@ -24,7 +24,6 @@
 		<name>IT for WFJ</name>
 	</organization>
 
-
 	<dependencies>
 		<dependency>
 			<groupId>junit</groupId>
@@ -80,21 +79,18 @@
             <groupId>commons-dbcp</groupId>
             <artifactId>commons-dbcp</artifactId>
             <version>1.2.2</version>
-            <optional>true</optional>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-dbcp2</artifactId>
             <version>2.1.1</version>
-            <optional>true</optional>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.tomcat</groupId>
             <artifactId>tomcat-jdbc</artifactId>
             <version>7.0.27</version>
-            <optional>true</optional>
             <scope>provided</scope>
         </dependency>
         <dependency>
